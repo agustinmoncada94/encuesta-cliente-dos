@@ -11,7 +11,7 @@ export default function Home() {
   const [comentario, setComentario] = useState(""); // Nuevo estado para comentarios
 
   const opcionesMotivos = [
-    "Amabilidad", "Rapidez", "Claridad", "Predisposición", "Resolución", "Buena atención", "Otro",
+    "Amabilidad", "Rapidisimo", "Claridad", "Predisposición", "Resolución", "Buena atención", "Otro",
   ];
 
   const empleados = [
