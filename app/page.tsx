@@ -3,27 +3,41 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+const satisfaccionOpciones = [
+  { valor: "Mala",      emoji: "😞" },
+  { valor: "Regular",   emoji: "😐" },
+  { valor: "Buena",     emoji: "🙂" },
+  { valor: "Excelente", emoji: "😄" },
+];
+
+const opcionesMotivoPositivo = [
+  "Amabilidad", "Rapidez", "Calidad", "Presentación", "Ambiente", "Atención", "Otro",
+];
+
+const opcionesMotivoNegativo = [
+  "Lentitud", "Amabilidad", "Calidad", "Presentación", "Limpieza", "Atención", "Otro",
+];
+
 export default function Home() {
-  const [pantalla, setPantalla] = useState("Secretarias");
+  const [pantalla, setPantalla] = useState<"empleados" | "satisfaccion" | "motivos" | "final">("empleados");
   const [satisfaccion, setSatisfaccion] = useState("");
   const [motivos, setMotivos] = useState<string[]>([]);
   const [empleado, setEmpleado] = useState("");
-  const [comentario, setComentario] = useState(""); // Nuevo estado para comentarios
-
-  const opcionesMotivos = [
-    "Amabilidad", "Rapidisimo", "Claridad", "Predisposición", "Resolución", "Buena atención", "Otro",
-  ];
+  const [comentario, setComentario] = useState("");
 
   const empleados = [
-    { nombre: "Pilar", foto: "/empleados/Pilar.jpg" },
-    { nombre: "Lourdes", foto: "/empleados/Lourdes.jpg" },
-    { nombre: "Eugenia", foto: "/empleados/Eugenia.jpg" },
-    { nombre: "Norma", foto: "/empleados/Norma.jpg" },
-    { nombre: "Tomas", foto: "/empleados/Tomas.jpg" },
+    { nombre: "Pilar",    foto: "/empleados/Pilar.jpg" },
+    { nombre: "Lourdes",  foto: "/empleados/Lourdes.jpg" },
+    { nombre: "Eugenia",  foto: "/empleados/Eugenia.jpg" },
+    { nombre: "Norma",    foto: "/empleados/Norma.jpg" },
+    { nombre: "Tomas",    foto: "/empleados/Tomas.jpg" },
     { nombre: "Victoria", foto: "/empleados/Victoria.jpg" },
-    { nombre: "Ivana", foto: "/empleados/Ivana.jpg" },
-    { nombre: "Julieta", foto: "/empleados/Julieta.jpg" },
+    { nombre: "Ivana",    foto: "/empleados/Ivana.jpg" },
+    { nombre: "Julieta",  foto: "/empleados/Julieta.jpg" },
   ];
+
+  const esPositivo = satisfaccion === "Buena" || satisfaccion === "Excelente";
+  const opcionesMotivos = esPositivo ? opcionesMotivoPositivo : opcionesMotivoNegativo;
 
   const seleccionarEmpleado = (nombre: string) => {
     setEmpleado(nombre);
@@ -32,15 +46,14 @@ export default function Home() {
 
   const seleccionarSatisfaccion = (valor: string) => {
     setSatisfaccion(valor);
+    setMotivos([]);
     setPantalla("motivos");
   };
 
   const toggleMotivo = (motivo: string) => {
-    if (motivos.includes(motivo)) {
-      setMotivos(motivos.filter((m) => m !== motivo));
-    } else {
-      setMotivos([...motivos, motivo]);
-    }
+    setMotivos((prev) =>
+      prev.includes(motivo) ? prev.filter((m) => m !== motivo) : [...prev, motivo]
+    );
   };
 
   const irAGracias = async () => {
@@ -48,7 +61,6 @@ export default function Home() {
       await fetch("/api/encuestas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Se envía satisfaccion, motivos, empleado y ahora también el comentario
         body: JSON.stringify({ satisfaccion, motivos, empleado, comentario }),
       });
     } catch (error) {
@@ -60,117 +72,121 @@ export default function Home() {
   useEffect(() => {
     if (pantalla === "final") {
       const timer = setTimeout(() => {
-        setPantalla("Secretarias");
+        setPantalla("empleados");
         setSatisfaccion("");
         setMotivos([]);
         setEmpleado("");
-        setComentario(""); // Limpiamos el comentario al reiniciar
-      }, 3500);
+        setComentario("");
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [pantalla]);
 
   return (
-    <div className="min-h-screen bg-[#5A0014] flex items-center justify-center p-4 md:p-8">
-      <div className="w-full max-w-6xl min-h-[90vh] bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
-        
-        {/* HEADER */}
-        <header className="bg-white text-[#6D0F1F] px-8 py-6 border-b border-gray-100">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
-            <div className="text-center md:text-left md:w-[30%]">
-              <p className="text-sm uppercase tracking-[0.25em] opacity-70">Encuesta de satisfacción</p>
-            </div>
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 md:p-8">
+      <div className="w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
-            <div className="md:w-[40%] flex justify-center items-center py-2 md:py-0">
-              <Image 
-                src="/logo.png" 
-                alt="Logo Gomez Benitez"
-                width={280} 
-                height={90} 
-                className="object-contain"
-                priority 
-              />
-            </div>
-
-            <div className="text-center md:text-right md:w-[30%]">
-              <p className="text-sm opacity-70">Pantalla actual</p>
-              <p className="text-lg font-semibold capitalize">{pantalla}</p>
-            </div>
+        {/* ── HEADER ── */}
+        <header className="bg-black text-white px-8 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-[0.22em] uppercase leading-none">TOMATE</h1>
+            <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase mt-1">Experiencia gastronómica</p>
           </div>
+          <p className="text-white/30 text-xs uppercase tracking-widest hidden md:block">
+            Encuesta de satisfacción
+          </p>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6 md:p-10">
-          
-          {/* PASO 1: SELECCIÓN DE SECRETARIAS */}
-          {pantalla === "Secretarias" && (
+
+          {/* ── PASO 1: EMPLEADOS ── */}
+          {pantalla === "empleados" && (
             <div className="w-full text-center">
-              <h2 className="text-4xl md:text-5xl font-bold text-[#6D0F1F] mb-4">¿Quién lo atendió hoy?</h2>
-              <p className="text-lg md:text-2xl text-gray-500 mb-10">Seleccioná al colaborador para comenzar</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
+                ¿Quién te atendió hoy?
+              </h2>
+              <p className="text-neutral-400 text-lg mb-10">
+                Tocá la persona que te brindó el servicio
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {empleados.map((item) => (
                   <button
                     key={item.nombre}
                     onClick={() => seleccionarEmpleado(item.nombre)}
-                    className="rounded-3xl border-4 border-[#F4E6E9] p-6 hover:scale-105 transition bg-white shadow-sm hover:border-[#6D0F1F]"
+                    className="group rounded-2xl border border-neutral-100 p-5 bg-white
+                               hover:border-black hover:shadow-xl hover:-translate-y-1
+                               transition-all duration-200 cursor-pointer"
                   >
-                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-[#F4E6E9] mx-auto mb-4 relative">
-                      <Image src={item.foto} alt={item.nombre} fill className="object-cover" />
+                    <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-neutral-100 mx-auto mb-4 relative ring-2 ring-transparent group-hover:ring-black transition-all duration-200">
+                      <Image
+                        src={item.foto}
+                        alt={item.nombre}
+                        fill
+                        className="object-cover grayscale group-hover:grayscale-0 transition duration-300"
+                      />
                     </div>
-                    <div className="text-xl md:text-2xl font-bold text-[#6D0F1F]">{item.nombre}</div>
+                    <div className="text-lg md:text-xl font-bold text-black">{item.nombre}</div>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* PASO 2: NIVEL DE SATISFACCIÓN */}
+          {/* ── PASO 2: SATISFACCIÓN ── */}
           {pantalla === "satisfaccion" && (
             <div className="w-full text-center">
-              <h2 className="text-4xl md:text-5xl font-bold text-[#6D0F1F] mb-4">
-                ¿Cómo fue el nivel de atención de {empleado}?
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
+                ¿Cómo fue la atención de {empleado}?
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
-                <button onClick={() => seleccionarSatisfaccion("Mala")} className="rounded-3xl border-4 border-[#F4E6E9] p-8 hover:scale-105 transition bg-white shadow-sm hover:border-[#6D0F1F]">
-                  <div className="text-6xl mb-4">😕</div>
-                  <div className="text-xl font-bold text-[#6D0F1F]">Mala</div>
-                </button>
-                <button onClick={() => seleccionarSatisfaccion("Regular")} className="rounded-3xl border-4 border-[#F4E6E9] p-8 hover:scale-105 transition bg-white shadow-sm hover:border-[#6D0F1F]">
-                  <div className="text-6xl mb-4">😐</div>
-                  <div className="text-xl font-bold text-[#6D0F1F]">Regular</div>
-                </button>
-                <button onClick={() => seleccionarSatisfaccion("Buena")} className="rounded-3xl border-4 border-[#F4E6E9] p-8 hover:scale-105 transition bg-white shadow-sm hover:border-[#6D0F1F]">
-                  <div className="text-6xl mb-4">🙂</div>
-                  <div className="text-xl font-bold text-[#6D0F1F]">Buena</div>
-                </button>
-                <button onClick={() => seleccionarSatisfaccion("Excelente")} className="rounded-3xl border-4 border-[#F4E6E9] p-8 hover:scale-105 transition bg-white shadow-sm hover:border-[#6D0F1F]">
-                  <div className="text-6xl mb-4">😄</div>
-                  <div className="text-xl font-bold text-[#6D0F1F]">Excelente</div>
-                </button>
+              <p className="text-neutral-400 text-lg mb-12">
+                Contanos tu experiencia
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-3xl mx-auto">
+                {satisfaccionOpciones.map(({ valor, emoji }) => (
+                  <button
+                    key={valor}
+                    onClick={() => seleccionarSatisfaccion(valor)}
+                    className="group rounded-2xl border-2 border-neutral-100 p-8 bg-white
+                               hover:border-black hover:bg-black hover:text-white
+                               hover:shadow-xl hover:-translate-y-1
+                               transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="text-5xl mb-4">{emoji}</div>
+                    <div className="text-lg font-bold">{valor}</div>
+                  </button>
+                ))}
               </div>
-              <button onClick={() => setPantalla("Secretarias")} className="mt-12 text-[#6D0F1F] underline font-semibold">
-                Volver a Secretarias
+
+              <button
+                onClick={() => setPantalla("empleados")}
+                className="mt-10 text-neutral-400 hover:text-black underline font-medium transition text-sm"
+              >
+                ← Volver
               </button>
             </div>
           )}
 
-          {/* PASO 3: MOTIVOS Y COMENTARIOS */}
+          {/* ── PASO 3: MOTIVOS + COMENTARIO ── */}
           {pantalla === "motivos" && (
             <div className="w-full text-center max-w-4xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-[#6D0F1F] mb-4">
-                {satisfaccion === "Buena" || satisfaccion === "Excelente"
-                  ? "¿Qué fue lo que más le gustó?" 
-                  : "¿En qué puede mejorar la atención?" 
-                }
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
+                {esPositivo ? "¿Qué fue lo que más te gustó?" : "¿En qué podemos mejorar?"}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-8">
+              <p className="text-neutral-400 text-lg mb-8">
+                Podés elegir más de una opción
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {opcionesMotivos.map((motivo) => (
                   <button
                     key={motivo}
                     onClick={() => toggleMotivo(motivo)}
-                    className={`rounded-2xl px-6 py-5 text-xl font-semibold border-4 transition ${
-                      motivos.includes(motivo) 
-                        ? "bg-[#6D0F1F] text-white border-[#6D0F1F]" 
-                        : "bg-white text-[#6D0F1F] border-[#F4E6E9]"
+                    className={`rounded-xl px-5 py-4 text-base font-semibold border-2 transition-all duration-150 cursor-pointer ${
+                      motivos.includes(motivo)
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-black border-neutral-200 hover:border-black"
                     }`}
                   >
                     {motivo}
@@ -178,44 +194,74 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* CAMPO DE COMENTARIO ADICIONAL */}
-              <div className="mb-8">
-                <p className="text-[#6D0F1F] text-xl font-bold mb-3">¿Desea agregar algún comentario? (Opcional)</p>
+              <div className="mb-8 text-left">
+                <p className="text-black font-semibold mb-2 text-sm uppercase tracking-wide">
+                  Comentario adicional{" "}
+                  <span className="text-neutral-400 font-normal normal-case tracking-normal">
+                    (opcional)
+                  </span>
+                </p>
                 <textarea
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
-                  placeholder="Escriba aquí sus observaciones..."
-                  className="w-full p-4 rounded-2xl border-4 border-[#F4E6E9] text-lg focus:border-[#6D0F1F] outline-none transition resize-none h-32"
+                  placeholder="Escribí aquí tus observaciones..."
+                  className="w-full p-4 rounded-xl border-2 border-neutral-200 text-base
+                             focus:border-black outline-none transition resize-none h-28"
                 />
               </div>
 
               <div className="flex gap-4 justify-center">
-                <button onClick={() => setPantalla("satisfaccion")} className="px-8 py-4 rounded-full bg-gray-200 text-gray-700 font-semibold">Volver</button>
-                <button 
-                  onClick={irAGracias} 
-                  disabled={motivos.length === 0 && comentario.length === 0} 
-                  className={`px-10 py-4 rounded-full font-semibold ${
-                    motivos.length === 0 && comentario.length === 0 ? "bg-gray-300 text-gray-500" : "bg-[#6D0F1F] text-white"
+                <button
+                  onClick={() => setPantalla("satisfaccion")}
+                  className="px-8 py-3.5 rounded-full border-2 border-neutral-200 text-neutral-600
+                             font-semibold hover:border-black hover:text-black transition cursor-pointer"
+                >
+                  ← Volver
+                </button>
+                <button
+                  onClick={irAGracias}
+                  disabled={motivos.length === 0 && comentario.length === 0}
+                  className={`px-10 py-3.5 rounded-full font-semibold transition ${
+                    motivos.length === 0 && comentario.length === 0
+                      ? "bg-neutral-200 text-neutral-400 cursor-not-allowed"
+                      : "bg-black text-white hover:bg-neutral-800 cursor-pointer"
                   }`}
                 >
-                  Finalizar
+                  Finalizar →
                 </button>
               </div>
             </div>
           )}
 
-          {/* PANTALLA FINAL */}
+          {/* ── PANTALLA FINAL ── */}
           {pantalla === "final" && (
             <div className="text-center">
-              <div className="text-8xl mb-6">✅</div>
-              <h2 className="text-5xl md:text-6xl font-bold text-[#6D0F1F] mb-4">¡Muchas gracias!</h2>
-              <p className="text-2xl text-gray-500">Tu opinión es fundamental para nosotros.</p>
+              <div className="w-20 h-20 rounded-full bg-black flex items-center justify-center mx-auto mb-8">
+                <span className="text-white text-3xl">✓</span>
+              </div>
+              <h2 className="text-5xl md:text-6xl font-bold text-black mb-4">
+                ¡Muchas gracias!
+              </h2>
+              <p className="text-xl text-neutral-400">
+                Tu opinión nos ayuda a mejorar cada día.
+              </p>
+              <div className="mt-8 flex justify-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-black" />
+                <div className="w-2 h-2 rounded-full bg-neutral-300" />
+                <div className="w-2 h-2 rounded-full bg-neutral-300" />
+              </div>
             </div>
           )}
 
         </main>
+
+        {/* ── FOOTER ── */}
+        <footer className="border-t border-neutral-100 px-8 py-4 flex justify-between items-center">
+          <p className="text-xs text-neutral-300 uppercase tracking-[0.25em] font-medium">Tomate</p>
+          <p className="text-xs text-neutral-300">Gracias por visitarnos</p>
+        </footer>
+
       </div>
     </div>
   );
-} 
-// Update para forzar deploy 1
+}
