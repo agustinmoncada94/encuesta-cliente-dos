@@ -84,8 +84,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 md:p-8 relative">
-      <Image src="/fondo.jpg" alt="Tomate local" fill className="object-cover object-center" priority />
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/40" />
       <div className="relative z-10 w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
         {/* ── HEADER ── */}
