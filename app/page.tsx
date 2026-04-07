@@ -83,9 +83,10 @@ export default function Home() {
   }, [pantalla]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 md:p-8 relative" style={{ backgroundImage: "url('/fondo.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
+    <div className="min-h-screen flex items-center justify-center p-4 md:p-8 relative">
+      <Image src="/fondo.jpg" alt="Tomate local" fill className="object-cover object-center" priority />
       <div className="absolute inset-0 bg-black/50" />
-      <div className="relative w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative z-10 w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
         {/* ── HEADER ── */}
         <header className="bg-black text-white px-8 py-5 flex items-center justify-between">
