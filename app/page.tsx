@@ -123,7 +123,7 @@ export default function Home() {
                         src={item.foto}
                         alt={item.nombre}
                         fill
-                        className="object-cover grayscale group-hover:grayscale-0 transition duration-300"
+                        className="object-cover transition duration-300"
                       />
                     </div>
                     <div className="text-lg md:text-xl font-bold text-black">{item.nombre}</div>
