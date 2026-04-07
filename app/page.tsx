@@ -18,6 +18,10 @@ const opcionesMotivoNegativo = [
   "Lentitud", "Mala atención", "Pedido incorrecto", "Limpieza", "Presentación", "Otro",
 ];
 
+const opcionesMotivoRegular = [
+  "Lentitud", "Atención", "Calidad", "Limpieza", "Presentación", "Otro",
+];
+
 export default function Home() {
   const [pantalla, setPantalla] = useState<"empleados" | "satisfaccion" | "motivos" | "final">("empleados");
   const [satisfaccion, setSatisfaccion] = useState("");
@@ -37,7 +41,10 @@ export default function Home() {
   ];
 
   const esPositivo = satisfaccion === "Buena" || satisfaccion === "Excelente";
-  const opcionesMotivos = esPositivo ? opcionesMotivoPositivo : opcionesMotivoNegativo;
+  const opcionesMotivos =
+    esPositivo ? opcionesMotivoPositivo
+    : satisfaccion === "Regular" ? opcionesMotivoRegular
+    : opcionesMotivoNegativo;
 
   const seleccionarEmpleado = (nombre: string) => {
     setEmpleado(nombre);
@@ -175,6 +182,8 @@ export default function Home() {
               <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
                 {satisfaccion === "Mala"
                   ? "¿Qué salió mal?"
+                  : satisfaccion === "Regular"
+                  ? "¿Qué podríamos mejorar?"
                   : esPositivo
                   ? "¿Qué fue lo que más te gustó?"
                   : "¿En qué podemos mejorar?"}
@@ -209,7 +218,11 @@ export default function Home() {
                 <textarea
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
-                  placeholder={satisfaccion === "Mala" ? "Contanos qué pasó..." : "Escribí aquí tus observaciones..."}
+                  placeholder={
+                    satisfaccion === "Mala" ? "Contanos qué pasó..."
+                    : satisfaccion === "Regular" ? "Tu comentario (opcional)"
+                    : "Escribí aquí tus observaciones..."
+                  }
                   className="w-full p-4 rounded-xl border-2 border-neutral-200 text-base
                              focus:border-black outline-none transition resize-none h-28"
                 />
