@@ -15,7 +15,7 @@ const opcionesMotivoPositivo = [
 ];
 
 const opcionesMotivoNegativo = [
-  "Lentitud", "Amabilidad", "Calidad", "Presentación", "Limpieza", "Atención", "Otro",
+  "Lentitud", "Mala atención", "Pedido incorrecto", "Limpieza", "Presentación", "Otro",
 ];
 
 export default function Home() {
@@ -26,7 +26,7 @@ export default function Home() {
   const [comentario, setComentario] = useState("");
 
   const empleados = [
-    { nombre: "Pilar",    foto: "/empleados/Pilar.jpg" },
+    { nombre: "Lucas",    foto: "/empleados/Lucas.jpg" },
     { nombre: "Lourdes",  foto: "/empleados/Lourdes.jpg" },
     { nombre: "Eugenia",  foto: "/empleados/Eugenia.jpg" },
     { nombre: "Norma",    foto: "/empleados/Norma.jpg" },
@@ -173,7 +173,11 @@ export default function Home() {
           {pantalla === "motivos" && (
             <div className="w-full text-center max-w-4xl">
               <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
-                {esPositivo ? "¿Qué fue lo que más te gustó?" : "¿En qué podemos mejorar?"}
+                {satisfaccion === "Mala"
+                  ? "¿Qué salió mal?"
+                  : esPositivo
+                  ? "¿Qué fue lo que más te gustó?"
+                  : "¿En qué podemos mejorar?"}
               </h2>
               <p className="text-neutral-400 text-lg mb-8">
                 Podés elegir más de una opción
@@ -205,7 +209,7 @@ export default function Home() {
                 <textarea
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
-                  placeholder="Escribí aquí tus observaciones..."
+                  placeholder={satisfaccion === "Mala" ? "Contanos qué pasó..." : "Escribí aquí tus observaciones..."}
                   className="w-full p-4 rounded-xl border-2 border-neutral-200 text-base
                              focus:border-black outline-none transition resize-none h-28"
                 />
