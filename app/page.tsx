@@ -35,7 +35,7 @@ export default function Home() {
 
   const empleados = [
     { nombre: "Lucas",    foto: "/empleados/Lucas.jpg" },
-    { nombre: "Lourdes",  foto: "/empleados/Lourdes.jpg" },
+    { nombre: "Martin",  foto: "/empleados/Martin.jpg" },
     { nombre: "Eugenia",  foto: "/empleados/Eugenia.jpg" },
     { nombre: "Norma",    foto: "/empleados/Norma.jpg" },
     { nombre: "Tomas",    foto: "/empleados/Tomas.jpg" },
@@ -100,8 +100,8 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
         {/* ── HEADER ── */}
-        <header className="bg-black text-white px-8 py-3 flex items-center justify-center">
-          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={420} height={80} className="object-contain" priority />
+        <header className="bg-black text-white px-8 py-8 flex items-center justify-center">
+          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={380} height={110} className="object-contain" priority />
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6 md:p-10">
