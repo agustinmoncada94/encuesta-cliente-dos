@@ -100,8 +100,8 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
         {/* ── HEADER ── */}
-        <header className="bg-black text-white px-8 py-4 flex items-center justify-center">
-          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={280} height={90} className="object-contain" priority />
+        <header className="bg-black text-white px-8 py-6 flex items-center justify-center">
+          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={420} height={130} className="object-contain" priority />
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6 md:p-10">
