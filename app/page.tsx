@@ -101,7 +101,7 @@ export default function Home() {
 
         {/* ── HEADER ── */}
         <header className="bg-black text-white px-8 py-4 flex items-center justify-center">
-          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={180} height={60} className="object-contain" priority />
+          <Image src="/logo-tomate.png" alt="Tomate Cocktail Spot" width={280} height={90} className="object-contain" priority />
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6 md:p-10">
