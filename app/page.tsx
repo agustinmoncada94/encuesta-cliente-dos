@@ -89,7 +89,7 @@ export default function Home() {
         setMotivos([]);
         setEmpleado("");
         setComentario("");
-      }, 4000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [pantalla]);
@@ -261,16 +261,11 @@ export default function Home() {
                 <span className="text-white text-3xl">✓</span>
               </div>
               <h2 className="text-5xl md:text-6xl font-bold text-black mb-4">
-                ¡Muchas gracias!
+                ¡Gracias por tu opinión!
               </h2>
               <p className="text-xl text-neutral-400">
-                Tu opinión nos ayuda a mejorar cada día.
+                Tu respuesta nos ayuda a mejorar.
               </p>
-              <div className="mt-8 flex justify-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-black" />
-                <div className="w-2 h-2 rounded-full bg-neutral-300" />
-                <div className="w-2 h-2 rounded-full bg-neutral-300" />
-              </div>
             </div>
           )}
 
