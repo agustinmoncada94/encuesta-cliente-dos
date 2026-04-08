@@ -11,7 +11,11 @@ const satisfaccionOpciones = [
 ];
 
 const opcionesMotivoPositivo = [
-  "Amabilidad", "Rapidez", "Calidad", "Presentación", "Ambiente", "Atención", "Otro",
+  "Rapidez", "Amabilidad", "Sabor", "Limpieza", "Presentación", "Otro",
+];
+
+const opcionesMotivoExcelente = [
+  "Atención", "Rapidez", "Calidad", "Todo perfecto", "Muy amable", "Otro",
 ];
 
 const opcionesMotivoNegativo = [
@@ -42,8 +46,9 @@ export default function Home() {
 
   const esPositivo = satisfaccion === "Buena" || satisfaccion === "Excelente";
   const opcionesMotivos =
-    esPositivo ? opcionesMotivoPositivo
-    : satisfaccion === "Regular" ? opcionesMotivoRegular
+    satisfaccion === "Excelente" ? opcionesMotivoExcelente
+    : satisfaccion === "Buena"     ? opcionesMotivoPositivo
+    : satisfaccion === "Regular"   ? opcionesMotivoRegular
     : opcionesMotivoNegativo;
 
   const seleccionarEmpleado = (nombre: string) => {
@@ -180,13 +185,10 @@ export default function Home() {
           {pantalla === "motivos" && (
             <div className="w-full text-center max-w-4xl">
               <h2 className="text-4xl md:text-5xl font-bold text-black mb-3">
-                {satisfaccion === "Mala"
-                  ? "¿Qué salió mal?"
-                  : satisfaccion === "Regular"
-                  ? "¿Qué podríamos mejorar?"
-                  : esPositivo
-                  ? "¿Qué fue lo que más te gustó?"
-                  : "¿En qué podemos mejorar?"}
+                {satisfaccion === "Mala"      ? "¿Qué salió mal?"
+                  : satisfaccion === "Regular"  ? "¿Qué podríamos mejorar?"
+                  : satisfaccion === "Buena"    ? "¿Qué te gustó?"
+                  : "¿Qué fue lo mejor?"}
               </h2>
               <p className="text-neutral-400 text-lg mb-8">
                 Podés elegir más de una opción
@@ -219,9 +221,10 @@ export default function Home() {
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
                   placeholder={
-                    satisfaccion === "Mala" ? "Contanos qué pasó..."
+                    satisfaccion === "Mala"     ? "Contanos qué pasó..."
                     : satisfaccion === "Regular" ? "Tu comentario (opcional)"
-                    : "Escribí aquí tus observaciones..."
+                    : satisfaccion === "Buena"  ? "Tu comentario (opcional)"
+                    : "Dejanos un comentario si querés"
                   }
                   className="w-full p-4 rounded-xl border-2 border-neutral-200 text-base
                              focus:border-black outline-none transition resize-none h-28"
