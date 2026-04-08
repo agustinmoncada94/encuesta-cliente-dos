@@ -100,14 +100,11 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-6xl min-h-[90vh] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
 
         {/* ── HEADER ── */}
-        <header className="bg-black text-white px-8 py-5 flex items-center justify-between">
-          <div>
+        <header className="bg-black text-white px-8 py-5 flex items-center justify-center">
+          <div className="text-center">
             <h1 className="text-2xl font-black tracking-[0.22em] uppercase leading-none">TOMATE</h1>
             <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase mt-1">Experiencia gastronómica</p>
           </div>
-          <p className="text-white/30 text-xs uppercase tracking-widest hidden md:block">
-            Encuesta de satisfacción
-          </p>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6 md:p-10">
