@@ -37,7 +37,7 @@ export default function Home() {
     { nombre: "Lucas",    foto: "/empleados/Lucas.jpg" },
     { nombre: "Martin",  foto: "/empleados/Martin.jpg" },
     { nombre: "Eugenia",  foto: "/empleados/Eugenia.jpg" },
-    { nombre: "Norma",    foto: "/empleados/Norma.jpg" },
+    { nombre: "Guido",    foto: "/empleados/Guido.jpg" },
     { nombre: "Tomas",    foto: "/empleados/Tomas.jpg" },
     { nombre: "Victoria", foto: "/empleados/Victoria.jpg" },
     { nombre: "Ivana",    foto: "/empleados/Ivana.jpg" },
