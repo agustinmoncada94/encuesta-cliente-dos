@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preinscripción - Gym</title>
+    <link rel="stylesheet" href="preinscripcion.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="pre-wrap">
+        <div class="pre-card">
+
+            <div id="pre-progress" class="pre-progress-header">
+                <span class="pre-kicker">Preinscripción</span>
+                <span class="pre-step-count" id="pre-step-count">1 / 2</span>
+            </div>
+            <div id="pre-progress-bar" class="pre-progress-bar">
+                <div class="pre-progress-fill" id="pre-progress-fill" style="width:50%"></div>
+            </div>
+
+            <!-- PASO 1 -->
+            <section class="pre-step" id="step-1">
+                <h1>Datos personales</h1>
+                <p class="pre-sub">Usalos tal como figuran en tu documento.</p>
+
+                <div class="pre-error-box" id="step1-error"></div>
+
+                <div class="pre-grid">
+                    <div class="pre-field" data-field="nombre">
+                        <label>Nombre *</label>
+                        <input id="p-nombre" type="text" autocomplete="given-name">
+                        <span class="pre-field-error">Ingresá tu nombre.</span>
+                    </div>
+                    <div class="pre-field" data-field="apellido">
+                        <label>Apellido *</label>
+                        <input id="p-apellido" type="text" autocomplete="family-name">
+                        <span class="pre-field-error">Ingresá tu apellido.</span>
+                    </div>
+                    <div class="pre-field" data-field="email">
+                        <label>Email *</label>
+                        <input id="p-email" type="email" autocomplete="email">
+                        <span class="pre-field-error">Ingresá un email válido.</span>
+                    </div>
+                    <div class="pre-field" data-field="telefono">
+                        <label>Teléfono *</label>
+                        <input id="p-telefono" type="tel" inputmode="numeric" autocomplete="tel">
+                        <span class="pre-hint">Te contactaremos por este medio</span>
+                        <span class="pre-field-error">Ingresá tu teléfono.</span>
+                    </div>
+                    <div class="pre-field" data-field="dni">
+                        <label>DNI *</label>
+                        <input id="p-dni" type="text" inputmode="numeric" maxlength="9">
+                        <span class="pre-field-error">Ingresá tu DNI (sin puntos).</span>
+                    </div>
+                    <div class="pre-field" data-field="nacimiento">
+                        <label>Fecha de nacimiento *</label>
+                        <input id="p-nacimiento" type="date">
+                        <span class="pre-field-error">Ingresá tu fecha de nacimiento.</span>
+                    </div>
+                    <div class="pre-field" data-field="sexo">
+                        <label>Sexo *</label>
+                        <select id="p-sexo">
+                            <option value="">Seleccionar</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Femenino">Femenino</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        <span class="pre-field-error">Seleccioná una opción.</span>
+                    </div>
+                </div>
+
+                <div class="pre-actions">
+                    <button type="button" class="pre-btn-primary" id="btn-next">Continuar</button>
+                </div>
+            </section>
+
+            <!-- PASO 2 -->
+            <section class="pre-step" id="step-2" hidden>
+                <h1>Servicio y pago</h1>
+                <p class="pre-sub">Tu servicio se activa después de validar el comprobante.</p>
+
+                <div class="pre-plan-card">
+                    <div class="pre-plan-top">
+                        <b>Libre</b>
+                        <span class="pre-plan-price">$45.000</span>
+                    </div>
+                    <p class="pre-plan-desc">Acceso libre a musculación</p>
+                    <p class="pre-plan-meta">30 días · 1 ingreso(s) por día</p>
+                </div>
+
+                <div class="pre-pay-card">
+                    <p class="pre-pay-kicker">Transferí el importe del servicio</p>
+                    <div class="pre-pay-row">
+                        <div>
+                            <b class="pre-pay-alias" id="pre-alias">DEKLON.MP</b>
+                            <p class="pre-pay-meta">Mercado Pago · Alias</p>
+                        </div>
+                        <button type="button" class="pre-copy-btn" id="btn-copy"><i class="fa-regular fa-copy"></i> Copiar</button>
+                    </div>
+
+                    <p class="pre-pay-note">Transferí el importe correspondiente y adjuntá el comprobante.</p>
+
+                    <label class="pre-upload" id="pre-upload-label" for="p-comprobante">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span id="pre-upload-text">Adjuntar comprobante (foto o captura)</span>
+                    </label>
+                    <input type="file" id="p-comprobante" accept="image/*" hidden>
+                    <div id="pre-preview-wrap" hidden>
+                        <img id="pre-preview" alt="Comprobante adjuntado">
+                    </div>
+                </div>
+
+                <div class="pre-error-box" id="step2-error"></div>
+
+                <div class="pre-actions">
+                    <button type="button" class="pre-btn-secondary" id="btn-back">Volver</button>
+                    <button type="button" class="pre-btn-primary" id="btn-submit" disabled>OK</button>
+                </div>
+            </section>
+
+            <!-- ÉXITO -->
+            <section class="pre-step pre-success" id="step-success" hidden>
+                <div class="pre-success-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <h1>¡Preinscripción enviada!</h1>
+                <p>Recibimos tus datos y el comprobante. En cuanto lo validemos vas a quedar activo — te contactamos por email o teléfono.</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        const PLAN = { nombre: 'Libre', monto: 45000, metodo: 'Transferencia' };
+        const ALIAS_PAGO = 'DEKLON.MP';
+
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const stepSuccess = document.getElementById('step-success');
+        const progressHeader = document.getElementById('pre-progress');
+        const progressBar = document.getElementById('pre-progress-bar');
+        const stepCount = document.getElementById('pre-step-count');
+        const progressFill = document.getElementById('pre-progress-fill');
+
+        const fields = {
+            nombre: document.getElementById('p-nombre'),
+            apellido: document.getElementById('p-apellido'),
+            email: document.getElementById('p-email'),
+            telefono: document.getElementById('p-telefono'),
+            dni: document.getElementById('p-dni'),
+            nacimiento: document.getElementById('p-nacimiento'),
+            sexo: document.getElementById('p-sexo')
+        };
+
+        // Solo números en Teléfono y DNI
+        [fields.telefono, fields.dni].forEach(input => {
+            input.addEventListener('input', () => {
+                const soloNumeros = input.value.replace(/\D/g, '');
+                if (soloNumeros !== input.value) input.value = soloNumeros;
+            });
+        });
+
+        function validarStep1() {
+            let valido = true;
+            for (const key in fields) {
+                const input = fields[key];
+                const wrap = input.closest('.pre-field');
+                let ok = input.value.trim() !== '';
+                if (ok && key === 'email') ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
+                if (ok && key === 'dni') ok = /^\d{6,9}$/.test(input.value.trim());
+                wrap.classList.toggle('pre-invalid', !ok);
+                if (!ok) valido = false;
+            }
+            return valido;
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (!validarStep1()) {
+                document.getElementById('step1-error').style.display = 'block';
+                document.getElementById('step1-error').textContent = 'Revisá los campos marcados antes de continuar.';
+                return;
+            }
+            document.getElementById('step1-error').style.display = 'none';
+            step1.hidden = true;
+            step2.hidden = false;
+            stepCount.textContent = '2 / 2';
+            progressFill.style.width = '100%';
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            step2.hidden = true;
+            step1.hidden = false;
+            stepCount.textContent = '1 / 2';
+            progressFill.style.width = '50%';
+        });
+
+        document.getElementById('pre-alias').textContent = ALIAS_PAGO;
+
+        document.getElementById('btn-copy').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-copy');
+            try {
+                await navigator.clipboard.writeText(ALIAS_PAGO);
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
+                setTimeout(() => { btn.innerHTML = original; }, 1800);
+            } catch (e) {
+                alert('No se pudo copiar. Alias: ' + ALIAS_PAGO);
+            }
+        });
+
+        // --- Comprobante: lectura + compresión a JPEG antes de enviar ---
+        let comprobanteDataUrl = null;
+        const inputComprobante = document.getElementById('p-comprobante');
+        const uploadLabel = document.getElementById('pre-upload-label');
+        const uploadText = document.getElementById('pre-upload-text');
+        const previewWrap = document.getElementById('pre-preview-wrap');
+        const preview = document.getElementById('pre-preview');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        function comprimirImagen(file, maxDim, calidad) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('El archivo no es una imagen válida'));
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxDim || height > maxDim) {
+                            const escala = maxDim / Math.max(width, height);
+                            width = Math.round(width * escala);
+                            height = Math.round(height * escala);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', calidad));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        inputComprobante.addEventListener('change', async () => {
+            const file = inputComprobante.files[0];
+            const errorBox = document.getElementById('step2-error');
+            errorBox.style.display = 'none';
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                errorBox.textContent = 'Adjuntá una imagen (foto o captura de pantalla).';
+                errorBox.style.display = 'block';
+                inputComprobante.value = '';
+                return;
+            }
+
+            uploadText.textContent = 'Procesando comprobante...';
+            try {
+                comprobanteDataUrl = await comprimirImagen(file, 1400, 0.75);
+                preview.src = comprobanteDataUrl;
+                previewWrap.hidden = false;
+                uploadLabel.classList.add('pre-upload-ok');
+                uploadText.textContent = 'Comprobante adjuntado ✔';
+                btnSubmit.disabled = false;
+            } catch (err) {
+                comprobanteDataUrl = null;
+                btnSubmit.disabled = true;
+                uploadText.textContent = 'Adjuntar comprobante (foto o captura)';
+                errorBox.textContent = 'No se pudo procesar la imagen. Probá con otra.';
+                errorBox.style.display = 'block';
+            }
+        });
+
+        // --- Envío final ---
+        btnSubmit.addEventListener('click', async () => {
+            if (!validarStep1() || !comprobanteDataUrl) return;
+
+            const errorBox = document.getElementById('step2-error');
+            errorBox.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Enviando...';
+
+            const nombreCompleto = `${fields.nombre.value.trim()} ${fields.apellido.value.trim()}`.trim();
+            const ahora = new Date();
+            const mes = ahora.toLocaleString('es-AR', { month: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+            const anio = ahora.toLocaleString('es-AR', { year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+
+            const payload = {
+                nombre: nombreCompleto,
+                apellido: fields.apellido.value.trim(),
+                email: fields.email.value.trim(),
+                telefono: fields.telefono.value.trim(),
+                dni: fields.dni.value.trim(),
+                fechaNacimiento: fields.nacimiento.value,
+                sexo: fields.sexo.value,
+                plan: PLAN.nombre,
+                primerPago: {
+                    monto: PLAN.monto,
+                    metodo: PLAN.metodo,
+                    concepto: `Mensual ${mes} ${anio}`
+                },
+                comprobante: { dataUrl: comprobanteDataUrl }
+            };
+
+            try {
+                const res = await fetch('/api/preinscripciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resultado = await res.json();
+
+                if (!res.ok || !resultado.success) {
+                    errorBox.textContent = resultado.error || 'No se pudo completar la preinscripción. Intentá de nuevo.';
+                    errorBox.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'OK';
+                    return;
+                }
+
+                step2.hidden = true;
+                progressHeader.hidden = true;
+                progressBar.hidden = true;
+                stepSuccess.hidden = false;
+            } catch (err) {
+                errorBox.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
+                errorBox.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'OK';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

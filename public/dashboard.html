@@ -1,0 +1,192 @@
+<div class="dash-wrap">
+
+    <!-- Header -->
+    <div class="dash-page-header">
+        <div>
+            <h1 class="equip-titulo">Dashboard KPI</h1>
+            <p class="dash-subtitle">Vista general del negocio con ingresos, estado de socios, asistencia y mantenimiento de equipamiento.</p>
+        </div>
+        <div class="equip-header-actions">
+            <div class="dash-filtro-fecha">
+                <input type="date" id="dash-desde" class="dash-filtro-input" title="Desde">
+                <span class="dash-filtro-separador">→</span>
+                <input type="date" id="dash-hasta" class="dash-filtro-input" title="Hasta">
+            </div>
+            <button class="det-btn-volver" id="dash-aplicar-filtro" onclick="cargarDashboardKPIs()">Aplicar</button>
+            <button class="eq-btn-primary" id="dash-exportar">Exportar reporte</button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="dash-kpi-grid">
+        <div class="dash-kpi-card">
+            <div class="dash-kpi-top">
+                <div class="dash-kpi-icon">👥</div>
+                <span class="dash-kpi-badge">KPI</span>
+            </div>
+            <p class="dash-kpi-label">Socios activos</p>
+            <p class="dash-kpi-value" id="kpi-socios">—</p>
+            <p class="dash-kpi-delta dash-delta-ok" id="kpi-socios-delta">Cargando...</p>
+        </div>
+        <div class="dash-kpi-card">
+            <div class="dash-kpi-top">
+                <div class="dash-kpi-icon">💰</div>
+                <span class="dash-kpi-badge">KPI</span>
+            </div>
+            <p class="dash-kpi-label">Ingresos del período</p>
+            <p class="dash-kpi-value" id="kpi-ingresos">—</p>
+            <p class="dash-kpi-delta dash-delta-ok" id="kpi-ingresos-delta">Cargando...</p>
+        </div>
+        <div class="dash-kpi-card">
+            <div class="dash-kpi-top">
+                <div class="dash-kpi-icon dash-kpi-icon-danger">⚠️</div>
+                <span class="dash-kpi-badge">KPI</span>
+            </div>
+            <p class="dash-kpi-label">Socios vencidos</p>
+            <p class="dash-kpi-value" id="kpi-vencidos">—</p>
+            <p class="dash-kpi-delta dash-delta-danger">Requieren seguimiento</p>
+        </div>
+        <div class="dash-kpi-card">
+            <div class="dash-kpi-top">
+                <div class="dash-kpi-icon">🏋️</div>
+                <span class="dash-kpi-badge">KPI</span>
+            </div>
+            <p class="dash-kpi-label">Equipos operativos</p>
+            <p class="dash-kpi-value" id="kpi-equipos">—</p>
+            <p class="dash-kpi-delta dash-delta-warn" id="kpi-equipos-delta">Cargando...</p>
+            <p class="dash-kpi-nota">Estado actual (no depende del rango)</p>
+        </div>
+    </div>
+
+    <!-- Fila 1: Ingresos + Donut socios -->
+    <div class="dash-row dash-row-7030">
+        <div class="det-card">
+            <div class="dash-chart-header">
+                <div>
+                    <p class="dash-chart-title">Ingresos mensuales</p>
+                    <p class="dash-chart-sub">Facturación por mes dentro del período seleccionado</p>
+                </div>
+            </div>
+            <div class="dash-chart-box"><canvas id="chart-ingresos"></canvas></div>
+        </div>
+
+        <div class="det-card">
+            <div class="dash-chart-header">
+                <div>
+                    <p class="dash-chart-title">Estado de socios</p>
+                    <p class="dash-chart-sub">Distribución de cuotas a la fecha "hasta" del período</p>
+                </div>
+                <button class="det-btn-volver" style="font-size:.8rem;padding:7px 14px" onclick="switchTab('socios_lista')">Filtrar socios</button>
+            </div>
+            <div class="dash-donut-wrap">
+                <div class="dash-chart-box dash-chart-box-sm"><canvas id="chart-estado"></canvas></div>
+                <div class="dash-donut-legend" id="dash-estado-legend"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 2: Asistencia + Equipos + Alertas/Planes -->
+    <div class="dash-row dash-row-333">
+        <div class="det-card">
+            <div class="dash-chart-header">
+                <div>
+                    <p class="dash-chart-title">Asistencia</p>
+                    <p class="dash-chart-sub">Ingresos por día (o por mes si el período es extenso)</p>
+                </div>
+            </div>
+            <div class="dash-chart-box"><canvas id="chart-asistencia"></canvas></div>
+        </div>
+
+        <div class="det-card">
+            <div class="dash-chart-header">
+                <div>
+                    <p class="dash-chart-title">Equipos por estado</p>
+                    <p class="dash-chart-sub">Resumen por categoría (estado actual)</p>
+                </div>
+                <button class="det-btn-volver" style="font-size:.8rem;padding:7px 14px" onclick="switchTab('equipos')">Ir a equipamiento</button>
+            </div>
+            <div class="dash-chart-box"><canvas id="chart-equipos"></canvas></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- Alertas -->
+            <div class="det-card">
+                <div class="dash-panel-header">
+                    <div class="dash-panel-icon">🔧</div>
+                    <h3 class="dash-panel-titulo">Alertas clave</h3>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    <div class="dash-alert dash-alert-danger">
+                        <p class="dash-alert-title" id="alerta-vencidos">Cargando...</p>
+                        <p class="dash-alert-desc">Conviene contactar a los que vencieron cerca de la fecha "hasta" seleccionada.</p>
+                    </div>
+                    <div class="dash-alert dash-alert-warning">
+                        <p class="dash-alert-title" id="alerta-mant-title">Cargando equipos…</p>
+                        <p class="dash-alert-desc"  id="alerta-mant-desc"></p>
+                    </div>
+                    <div class="dash-alert dash-alert-success">
+                        <p class="dash-alert-title" id="alerta-asistencia">Sin datos de asistencia aún</p>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Planes más elegidos -->
+            <div class="det-card">
+                <div class="dash-panel-header">
+                    <div class="dash-panel-icon">📈</div>
+                    <h3 class="dash-panel-titulo">Planes más elegidos</h3>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px" id="dash-planes"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 3: Ingresos por método + Resumen ejecutivo -->
+    <div class="dash-row dash-row-6040">
+        <div class="det-card">
+            <div class="dash-chart-header">
+                <div>
+                    <p class="dash-chart-title">Ingresos por método de pago</p>
+                    <p class="dash-chart-sub">Total del período seleccionado · Efectivo, Transferencia y QR</p>
+                </div>
+            </div>
+            <div class="dash-chart-box"><canvas id="chart-metodos"></canvas></div>
+            <div id="metodos-detalle" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px"></div>
+        </div>
+
+        <div class="det-card">
+            <div class="dash-panel-header">
+                <div class="dash-panel-icon">📊</div>
+                <h3 class="dash-panel-titulo">Resumen ejecutivo</h3>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="dash-summary-row"><span>Promedio diario de asistencia</span><b id="dash-prom-asist">—</b></div>
+                <div class="dash-summary-row"><span>Ticket promedio del período</span><b id="dash-ticket-prom">—</b></div>
+                <div class="dash-summary-row"><span>Mantenimiento pendiente (actual)</span><b id="dash-mant-pendiente">—</b></div>
+                <div class="dash-summary-row dash-summary-highlight"><span>Tasa de socios al día</span><b id="dash-tasa">—</b></div>
+                <div class="dash-summary-row"><span>Plan con mejor rendimiento</span><b id="dash-mejor-plan">—</b></div>
+                <div class="dash-summary-row"><span>Total socios registrados</span><b id="dash-total-socios">—</b></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts y KPIs inicializados desde admin.html via cargarDashboardKPIs() -->
+<script>
+(function () {
+    // Exportar reporte
+    const btn = document.getElementById('dash-exportar');
+    if (btn) btn.onclick = () => {
+        const txt = [
+            'REPORTE DASHBOARD KPI',
+            '======================',
+            `Fecha: ${new Date().toLocaleDateString('es-AR')}`,
+        ].join('\n');
+        const a = document.createElement('a');
+        a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txt);
+        a.download = `reporte_dashboard_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.txt`;
+        a.click();
+    };
+})();
+</script>

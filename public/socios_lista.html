@@ -1,0 +1,78 @@
+<div class="card">
+    <div class="sl-header">
+        <h1 class="sl-title">Lista de socios</h1>
+    </div>
+
+    <div class="sl-resumen">
+        <div class="sl-resumen-card sl-resumen-success">
+            <p class="sl-resumen-label"><i class="fas fa-user-check"></i> Socios activos</p>
+            <p class="sl-resumen-valor" id="resumen-activos">—</p>
+        </div>
+        <div class="sl-resumen-card sl-resumen-warning">
+            <p class="sl-resumen-label"><i class="fas fa-clock"></i> Vencen esta semana</p>
+            <p class="sl-resumen-valor" id="resumen-vencen-semana">—</p>
+        </div>
+        <div class="sl-resumen-card sl-resumen-danger">
+            <p class="sl-resumen-label"><i class="fas fa-triangle-exclamation"></i> Vencidos</p>
+            <p class="sl-resumen-valor" id="resumen-vencidos">—</p>
+        </div>
+        <div class="sl-resumen-card" id="resumen-card-ingresos">
+            <p class="sl-resumen-label"><i class="fas fa-sack-dollar"></i> Ingresos del mes</p>
+            <p class="sl-resumen-valor" id="resumen-ingresos-mes">—</p>
+        </div>
+    </div>
+
+    <div class="sl-toolbar">
+        <div class="sl-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="busqueda" placeholder="Buscar por nombre o DNI..." onkeyup="filtrarSocios()">
+        </div>
+
+        <div class="sl-select-wrap">
+            <i class="fas fa-filter"></i>
+            <select id="filtroEstado" class="sl-select" onchange="filtrarSocios()">
+                <option value="todos">Todos los estados</option>
+                <option value="AL DÍA">Al día</option>
+                <option value="VENCIDO">Vencidos</option>
+                <option value="POR VENCER">Por vencer</option>
+                <option value="SUSPENDIDO">Suspendidos</option>
+                <option value="PRUEBA">Prueba</option>
+            </select>
+        </div>
+
+        <div class="sl-select-wrap">
+            <i class="fas fa-tags"></i>
+            <select id="filtroPlan" class="sl-select" onchange="filtrarSocios()">
+                <option value="todos">Todos los planes</option>
+                <option value="Musculación">Musculación</option>
+                <option value="Plan Full">Plan Full</option>
+                <option value="Personalizado">Personalizado</option>
+                <option value="Semana de Prueba">Semana de Prueba</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="sl-summary">
+        <div class="sl-badge">
+            <i class="fas fa-users"></i>
+            Socios encontrados: <b id="contador-socios">0</b>
+        </div>
+        <button class="sl-export" onclick="exportarSociosCSV()">⬇ Exportar CSV</button>
+    </div>
+
+    <div style="overflow-x: auto; overflow-y: auto; max-height: 60vh; border-radius: 8px;">
+        <table class="tabla-socios" style="min-width: 700px;">
+            <thead style="position: sticky; top: 0; z-index: 2; background: var(--panel-strong)">
+                <tr>
+                    <th style="width: 25%;">Socio</th>
+                    <th style="width: 15%;">Plan</th>
+                    <th style="width: 25%;">Ciclo de Pago</th>
+                    <th style="width: 15%;">Estado</th>
+                    <th style="width: 20%; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="lista">
+                </tbody>
+        </table>
+    </div>
+</div>

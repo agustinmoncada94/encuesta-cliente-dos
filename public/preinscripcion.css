@@ -1,0 +1,349 @@
+/* preinscripcion.css */
+:root {
+    --bg: #0a0a0a;
+    --panel: rgba(18, 18, 18, 0.82);
+    --panel-strong: #161616;
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --text: #f5f7fb;
+    --text-soft: #a8b3c2;
+    --text-faint: #6f7b8c;
+    --accent: #ff1d1f;
+    --accent-2: #b81516;
+    --accent-text: #ffffff;
+    --danger: #ff5c5c;
+    --success: #35e08a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 24px 16px;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    background-image: linear-gradient(rgba(8, 8, 8, 0.88), rgba(8, 8, 8, 0.96)),
+                      url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.pre-wrap {
+    width: 100%;
+    max-width: 640px;
+    margin: 24px auto;
+}
+
+.pre-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(12px);
+}
+
+/* Progreso */
+.pre-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.pre-kicker {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.pre-step-count {
+    font-size: 0.8rem;
+    color: var(--text-faint);
+}
+
+.pre-progress-bar {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-bottom: 28px;
+}
+
+.pre-progress-fill {
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+/* Pasos */
+.pre-step h1 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+}
+
+.pre-sub {
+    margin: 0 0 24px;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+}
+
+.pre-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 20px;
+}
+
+.pre-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.pre-field label {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    margin-bottom: 6px;
+}
+
+.pre-field input,
+.pre-field select {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--panel-strong);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.95rem;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.pre-field select { color: var(--text); }
+.pre-field select option { background: var(--panel-strong); }
+
+.pre-field input:focus,
+.pre-field select:focus {
+    border-color: rgba(255, 29, 31, 0.5);
+    box-shadow: 0 0 0 4px rgba(255, 29, 31, 0.1);
+}
+
+.pre-hint {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    margin-top: 6px;
+}
+
+.pre-field-error {
+    font-size: 0.75rem;
+    color: var(--danger);
+    margin-top: 6px;
+    display: none;
+}
+
+.pre-field.pre-invalid input,
+.pre-field.pre-invalid select {
+    border-color: var(--danger);
+}
+
+.pre-field.pre-invalid .pre-field-error { display: block; }
+
+/* Plan */
+.pre-plan-card {
+    border: 1px solid rgba(255, 29, 31, 0.35);
+    background: rgba(255, 29, 31, 0.07);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+}
+
+.pre-plan-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 1.1rem;
+}
+
+.pre-plan-price { color: var(--accent); font-weight: 700; }
+
+.pre-plan-desc {
+    margin: 6px 0 2px;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+}
+
+.pre-plan-meta {
+    margin: 0;
+    color: var(--text-faint);
+    font-size: 0.82rem;
+}
+
+/* Pago */
+.pre-pay-card {
+    border: 1px solid var(--panel-border);
+    background: var(--panel-strong);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.pre-pay-kicker {
+    margin: 0 0 10px;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+}
+
+.pre-pay-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.pre-pay-alias {
+    font-size: 1.05rem;
+    display: block;
+}
+
+.pre-pay-meta {
+    margin: 2px 0 0;
+    color: var(--text-faint);
+    font-size: 0.82rem;
+}
+
+.pre-copy-btn {
+    background: rgba(255, 29, 31, 0.12);
+    border: 1px solid rgba(255, 29, 31, 0.35);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.pre-copy-btn:hover { background: rgba(255, 29, 31, 0.2); }
+
+.pre-pay-note {
+    margin: 16px 0 14px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+}
+
+.pre-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    transition: 0.2s ease;
+}
+
+.pre-upload:hover { border-color: rgba(255, 29, 31, 0.5); color: var(--text); }
+.pre-upload.pre-upload-ok { border-color: rgba(53, 224, 138, 0.5); color: var(--success); }
+
+#pre-preview-wrap { margin-top: 14px; text-align: center; }
+
+#pre-preview {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 12px;
+    border: 1px solid var(--panel-border);
+}
+
+/* Acciones */
+.pre-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.pre-btn-primary,
+.pre-btn-secondary {
+    flex: 1;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: 0.2s ease;
+}
+
+.pre-btn-primary {
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    color: var(--accent-text);
+    box-shadow: 0 12px 20px rgba(255, 29, 31, 0.25);
+}
+
+.pre-btn-primary:hover:not(:disabled) { transform: translateY(-2px); }
+
+.pre-btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.pre-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--text-soft);
+    flex: 0 0 auto;
+    padding: 15px 22px;
+}
+
+.pre-btn-secondary:hover { background: rgba(255, 255, 255, 0.05); }
+
+.pre-error-box {
+    display: none;
+    background: rgba(255, 92, 92, 0.1);
+    border: 1px solid rgba(255, 92, 92, 0.35);
+    color: #ff8a8a;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+/* Éxito */
+.pre-success {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.pre-success-icon {
+    font-size: 3.4rem;
+    color: var(--success);
+    margin-bottom: 14px;
+}
+
+.pre-success h1 { margin-bottom: 8px; }
+
+.pre-success p {
+    color: var(--text-soft);
+    font-size: 0.95rem;
+}
+
+@media (max-width: 560px) {
+    .pre-card { padding: 24px 18px; border-radius: 18px; }
+    .pre-grid { grid-template-columns: 1fr; }
+    .pre-actions { flex-direction: column-reverse; }
+    .pre-btn-secondary { flex: 1; }
+}

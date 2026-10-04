@@ -1,0 +1,57 @@
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 2rem; letter-spacing: 2px;">REGISTRAR SOCIO</h1>
+        <div style="width: 60px; height: 4px; background: var(--primary); margin: 10px auto;"></div>
+    </div>
+
+    <form id="registroForm">
+        <label style="font-size: 0.7rem; color: var(--text-muted);">NOMBRE COMPLETO</label>
+        <input type="text" id="nombre" class="admin-input" required>
+        
+        <label style="font-size: 0.7rem; color: var(--text-muted);">DNI (SIN PUNTOS)</label>
+        <input type="text" id="dni" class="admin-input" required>
+        
+        <label style="font-size: 0.7rem; color: var(--text-muted);">FECHA NACIMIENTO</label>
+        <input type="date" id="nacimiento" class="admin-input" required>
+        
+        <label style="font-size: 0.7rem; color: var(--text-muted);">TELÉFONO</label>
+        <input type="tel" id="telefono" class="admin-input">
+        
+        <label style="font-size: 0.7rem; color: var(--text-muted);">PLAN</label>
+        <select id="plan" class="admin-input" required>
+            <option value="" disabled selected>-- Seleccionar plan --</option>
+        </select>
+
+        <label style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-top: 10px;">ESTADO DEL SOCIO</label>
+        <select id="estado" class="admin-input">
+            <option value="Activo">Activo (Basado en fecha)</option>
+            <option value="Suspendido">Suspendido (Acceso denegado)</option>
+        </select>
+
+        <label style="font-size: 0.7rem; color: var(--text-muted);">INICIO COBERTURA (OPCIONAL)</label>
+        <input type="date" id="fechaInicio" class="admin-input">
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); margin-top: 20px; padding-top: 20px;">
+            <p style="font-size: 0.7rem; color: var(--primary); font-weight: 700; letter-spacing: 2px; margin-bottom: 4px;">PRIMER PAGO</p>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Se registrará automáticamente en el historial al dar de alta.</p>
+
+            <label style="font-size: 0.7rem; color: var(--text-muted);">MONTO</label>
+            <input type="number" id="pago-monto" class="admin-input" placeholder="Ej: 20000" min="0">
+
+            <label style="font-size: 0.7rem; color: var(--text-muted);">MÉTODO DE PAGO</label>
+            <select id="pago-metodo" class="admin-input">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="QR">QR</option>
+            </select>
+
+            <label style="font-size: 0.7rem; color: var(--text-muted);">CONCEPTO</label>
+            <input type="text" id="pago-concepto" class="admin-input" placeholder="Ej: Mensual marzo 2026">
+
+            <label style="font-size: 0.7rem; color: var(--text-muted);">OBSERVACIÓN (OPCIONAL)</label>
+            <textarea id="pago-observacion" class="admin-input" rows="2" placeholder="Notas sobre este pago..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit" style="margin-top: 20px;">DAR DE ALTA</button>
+    </form>
+</div>
