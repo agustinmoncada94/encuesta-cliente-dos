@@ -90,6 +90,18 @@ app.get('/api/socios/todos', async (req, res) => {
     }
 });
 
+// OBTENER UN SOLO SOCIO (usado por el portal del socio, para no exponer el padron completo)
+app.get('/api/socios/:dni', async (req, res) => {
+    try {
+        await conectar();
+        const raw = await client.get(`socio:${req.params.dni}`);
+        if (!raw) return res.status(404).json({ error: 'Socio no encontrado' });
+        res.json(JSON.parse(raw));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // REGISTRAR NUEVO
 app.post('/api/registrar', async (req, res) => {
     try {
@@ -372,6 +384,57 @@ app.get('/api/asistencia', async (req, res) => {
                 const raw = await client.get(`asistencia:${fecha}`);
                 const registros = raw ? JSON.parse(raw) : [];
                 resultado.push({ dia: diasSemana[d.getDay()], fecha, cantidad: registros.length });
+            }
+        }
+
+        res.json(resultado);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ASISTENCIA DE UN SOLO SOCIO (para el portal del socio)
+// Sin parametros: ultimos "dias" dias (default 30). Con ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD: ese rango exacto (para navegar meses del calendario).
+app.get('/api/socios/:dni/asistencia', async (req, res) => {
+    try {
+        await conectar();
+        const { desde, hasta } = req.query;
+        const resultado = [];
+
+        if (desde && hasta) {
+            const parse = s => {
+                const [y, m, d] = String(s).split('-').map(Number);
+                return (y && m && d) ? { y, m, d } : null;
+            };
+            const fd = parse(desde);
+            const fh = parse(hasta);
+            if (!fd || !fh) return res.status(400).json({ error: 'Formato de fecha inválido (usar YYYY-MM-DD)' });
+
+            const inicioUTC = Date.UTC(fd.y, fd.m - 1, fd.d);
+            const finUTC     = Date.UTC(fh.y, fh.m - 1, fh.d);
+            if (finUTC < inicioUTC) return res.status(400).json({ error: 'La fecha "hasta" no puede ser anterior a "desde"' });
+
+            const totalDias = Math.round((finUTC - inicioUTC) / 86400000) + 1;
+            if (totalDias > 62) return res.status(400).json({ error: 'El rango no puede superar 62 días' });
+
+            for (let i = 0; i < totalDias; i++) {
+                const actual = new Date(inicioUTC + i * 86400000);
+                const fecha = `${actual.getUTCDate()}/${actual.getUTCMonth() + 1}/${actual.getUTCFullYear()}`;
+                const raw = await client.get(`asistencia:${fecha}`);
+                const registros = raw ? JSON.parse(raw) : [];
+                const registro = [...registros].reverse().find(r => String(r.dni) === String(req.params.dni));
+                resultado.push({ fecha, asistio: !!registro, hora: registro ? registro.hora : null });
+            }
+        } else {
+            const dias = Math.min(Math.max(parseInt(req.query.dias, 10) || 30, 1), 90);
+            for (let i = dias - 1; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const fecha = d.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+                const raw = await client.get(`asistencia:${fecha}`);
+                const registros = raw ? JSON.parse(raw) : [];
+                const registro = [...registros].reverse().find(r => String(r.dni) === String(req.params.dni));
+                resultado.push({ fecha, asistio: !!registro, hora: registro ? registro.hora : null });
             }
         }
 

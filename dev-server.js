@@ -36,6 +36,20 @@ const apiApp = require('./api/index.js');
 
 const server = express();
 server.use(express.static(path.join(__dirname, 'public')));
+
+// Solo para desarrollo: marca una asistencia en una fecha arbitraria (el check-in real
+// siempre usa la fecha de hoy, esto sirve para probar el calendario con datos pasados).
+// Body: { dni, fecha: "D/M/YYYY", nombre? }
+server.post('/dev/seed-asistencia', express.json(), async (req, res) => {
+    const { dni, fecha, nombre } = req.body;
+    const key = `asistencia:${fecha}`;
+    const existentes = await fakeClient.get(key);
+    const registros = existentes ? JSON.parse(existentes) : [];
+    registros.push({ dni, nombre: nombre || 'Demo', hora: '10:00' });
+    await fakeClient.set(key, JSON.stringify(registros));
+    res.json({ success: true });
+});
+
 server.use(apiApp);
 
 const PORT = process.env.PORT || 3000;

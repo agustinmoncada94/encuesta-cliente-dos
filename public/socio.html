@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Mi DECLON</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="socio.css" />
+</head>
+<body>
+
+    <!-- Pantalla de acceso: TEMPORAL por DNI, hasta que haya login real del socio -->
+    <div class="socio-gate" id="gate">
+        <img src="img/logo.png" class="socio-logo" alt="DECLON" />
+        <h1>Mi DECLON</h1>
+        <p>Ingresá tu DNI para ver tu estado de cuenta.</p>
+        <input type="text" id="gate-dni" inputmode="numeric" placeholder="Tu DNI, sin puntos" maxlength="9" />
+        <button id="gate-btn">Ingresar</button>
+        <div class="socio-gate-error" id="gate-error">No encontramos un socio con ese DNI.</div>
+    </div>
+
+    <!-- Contenido del socio -->
+    <div class="socio-wrap" id="contenido" hidden>
+
+        <div class="socio-header">
+            <div class="socio-avatar" id="avatar">--</div>
+            <div>
+                <p class="socio-header-kicker">Mi DECLON</p>
+                <h1 id="nombre-socio">—</h1>
+            </div>
+            <button class="socio-logout" id="btn-salir" title="Salir"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+
+        <!-- 1. Estado de membresia -->
+        <div class="socio-card socio-hero" id="hero-card">
+            <span class="socio-estado-badge" id="hero-badge">
+                <i class="fa-solid fa-circle"></i><span id="hero-badge-texto">—</span>
+            </span>
+            <p class="socio-hero-dias" id="hero-dias">—<small id="hero-dias-label">días restantes</small></p>
+            <p class="socio-hero-plan">Plan <b id="hero-plan">—</b></p>
+        </div>
+
+        <!-- 2. Proximo vencimiento / renovacion -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-regular fa-clock"></i> Próximo vencimiento</p>
+            <div class="socio-venc-grid">
+                <div class="socio-venc-item">
+                    <i class="fa-regular fa-calendar"></i>
+                    <div><span>Fecha</span><b id="venc-fecha">—</b></div>
+                </div>
+                <div class="socio-venc-item">
+                    <i class="fa-solid fa-sack-dollar"></i>
+                    <div><span>Monto</span><b id="venc-monto">—</b></div>
+                </div>
+                <div class="socio-venc-item">
+                    <i class="fa-regular fa-credit-card"></i>
+                    <div><span>Tipo</span><b>Mensual</b></div>
+                </div>
+            </div>
+            <a class="socio-btn-whatsapp" id="btn-whatsapp" href="#" target="_blank" rel="noopener">
+                <i class="fa-brands fa-whatsapp"></i> Enviar comprobante de pago por Whatsapp
+            </a>
+        </div>
+
+        <!-- 3. Resumen de asistencias -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-solid fa-dumbbell"></i> Asistencias este mes</p>
+            <p class="socio-resumen-numero" id="resumen-asist-total">—<span>asistencias</span></p>
+            <p class="socio-resumen-ultima">Última asistencia: <b id="resumen-ultima-asist">—</b></p>
+        </div>
+
+        <!-- 4. Mis datos -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-regular fa-id-card"></i> Mis datos</p>
+            <div class="socio-info-row"><span>Nombre completo</span><b id="info-nombre">—</b></div>
+            <div class="socio-info-row"><span>DNI</span><b id="info-dni">—</b></div>
+            <div class="socio-info-row"><span>Fecha de nacimiento</span><b id="info-nacimiento">—</b></div>
+            <div class="socio-info-row"><span>Teléfono</span><b id="info-telefono">—</b></div>
+            <div class="socio-info-row"><span>Plan</span><b id="info-plan">—</b></div>
+        </div>
+
+        <!-- 5. Ciclo de pago -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-regular fa-calendar"></i> Tu ciclo de pago</p>
+            <div class="socio-info-row"><span>Inicio</span><b id="info-desde">—</b></div>
+            <div class="socio-info-row"><span>Vencimiento</span><b id="info-hasta">—</b></div>
+            <div class="socio-info-row"><span>Último pago</span><b id="info-ultimo-pago">—</b></div>
+        </div>
+
+        <!-- 6. Calendario del mes -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-regular fa-calendar-check"></i> Calendario</p>
+            <div class="socio-cal-header">
+                <button class="socio-cal-nav" id="cal-prev" title="Mes anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="cal-mes">—</span>
+                <button class="socio-cal-nav" id="cal-next" title="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="socio-cal-dow">
+                <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
+            </div>
+            <div class="socio-cal-grid" id="cal-grid"></div>
+            <div class="socio-cal-leyenda">
+                <span><i class="socio-cal-dot si"></i> Asististe</span>
+                <span><i class="socio-cal-dot hoy"></i> Hoy</span>
+            </div>
+        </div>
+
+        <!-- 7. Historial de pagos -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-solid fa-receipt"></i> Historial de pagos</p>
+            <div id="pagos-lista"><div class="socio-empty">Cargando...</div></div>
+        </div>
+
+    </div>
+
+    <script>
+    (function () {
+        const WHATSAPP_NUMERO = '5493532400146';
+
+        // Las fechas "solo fecha" (YYYY-MM-DD, sin hora) se arman en horario local para que no
+        // se corran un día hacia atrás si el navegador está en una zona horaria detrás de UTC.
+        const fmtFecha = val => {
+            try {
+                if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                    const [y, m, d] = val.split('-').map(Number);
+                    return new Date(y, m - 1, d).toLocaleDateString('es-AR');
+                }
+                return new Date(val).toLocaleDateString('es-AR');
+            } catch { return '—'; }
+        };
+
+        function iniciales(nombre) {
+            return (nombre || '')
+                .split(' ').filter(Boolean).slice(0, 2)
+                .map(p => p[0].toUpperCase()).join('') || '--';
+        }
+
+        async function buscarSocio(dni) {
+            const res = await fetch(`/api/socios/${encodeURIComponent(dni)}`);
+            if (!res.ok) return null;
+            return res.json();
+        }
+
+        async function cargarPortal(dni) {
+            const socio = await buscarSocio(dni);
+            if (!socio) {
+                document.getElementById('gate-error').style.display = 'block';
+                return;
+            }
+
+            sessionStorage.setItem('socio_dni', dni);
+            document.getElementById('gate').hidden = true;
+            document.getElementById('contenido').hidden = false;
+
+            document.getElementById('avatar').innerText = iniciales(socio.nombre);
+            document.getElementById('nombre-socio').innerText = socio.nombre;
+
+            // ── Mis datos ──
+            document.getElementById('info-nombre').innerText = socio.nombre || '—';
+            document.getElementById('info-dni').innerText = socio.dni || '—';
+            document.getElementById('info-nacimiento').innerText = socio.nacimiento ? fmtFecha(socio.nacimiento) : '—';
+            document.getElementById('info-telefono').innerText = socio.telefono || '—';
+            document.getElementById('info-plan').innerText = socio.plan || 'Musculación';
+
+            // ── Ciclo de pago y estado ──
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            const desde = new Date(socio.fechaInicio || socio.fechaPago);
+            const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+            const diffDays = Math.ceil((hasta - hoy) / 86400000);
+
+            document.getElementById('info-desde').innerText = fmtFecha(desde);
+            document.getElementById('info-hasta').innerText = fmtFecha(hasta);
+            document.getElementById('venc-fecha').innerText = fmtFecha(hasta);
+
+            const heroCard = document.getElementById('hero-card');
+            const heroDias = document.getElementById('hero-dias');
+            const heroBadge = document.getElementById('hero-badge');
+            const heroBadgeTexto = document.getElementById('hero-badge-texto');
+
+            if (socio.estado === 'Suspendido') {
+                heroCard.className = 'socio-card socio-hero socio-hero-suspendido';
+                heroDias.innerHTML = '<i class="fa-solid fa-lock"></i><small>Suspendido</small>';
+                heroBadge.className = 'socio-estado-badge socio-estado-suspendido';
+                heroBadgeTexto.innerText = 'Membresía suspendida';
+            } else if (diffDays < 0) {
+                heroCard.className = 'socio-card socio-hero socio-hero-vencido';
+                heroDias.innerHTML = `${Math.abs(diffDays)}<small>día${Math.abs(diffDays) === 1 ? '' : 's'} vencido</small>`;
+                heroBadge.className = 'socio-estado-badge socio-estado-vencido';
+                heroBadgeTexto.innerText = 'Membresía vencida';
+            } else {
+                const pronto = diffDays < 7;
+                heroCard.className = 'socio-card socio-hero ' + (pronto ? 'socio-hero-pronto' : 'socio-hero-ok');
+                heroDias.innerHTML = `${diffDays}<small>día${diffDays === 1 ? '' : 's'} restantes</small>`;
+                heroBadge.className = 'socio-estado-badge ' + (pronto ? 'socio-estado-pronto' : 'socio-estado-ok');
+                heroBadgeTexto.innerText = pronto ? 'Vence pronto' : 'Membresía activa';
+            }
+
+            document.getElementById('hero-plan').innerText = socio.plan || 'Musculación';
+
+            // ── Botones de WhatsApp (comprobante de pago / renovar membresía) ──
+            const mesActualTexto = hoy.toLocaleString('es-AR', { month: 'long', year: 'numeric' });
+            const mensajeComprobante = `Hola! Soy ${socio.nombre} (DNI ${socio.dni}), te mando el comprobante de mi pago de ${mesActualTexto}.`;
+            document.getElementById('btn-whatsapp').href = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensajeComprobante)}`;
+
+            // ── Pagos ──
+            try {
+                const pagos = await fetch(`/api/socios/${dni}/pagos`).then(r => r.json());
+                const lista = document.getElementById('pagos-lista');
+                document.getElementById('venc-monto').innerText = pagos[0] ? pagos[0].monto : '—';
+
+                document.getElementById('info-ultimo-pago').innerText = pagos[0] ? `${pagos[0].monto} · ${pagos[0].metodo}` : '—';
+
+                if (!pagos.length) {
+                    lista.innerHTML = '<div class="socio-empty">Todavía no hay pagos registrados.</div>';
+                } else {
+                    lista.innerHTML = pagos.slice(0, 10).map(p => `
+                        <div class="socio-pago-item">
+                            <div class="socio-pago-top">
+                                <div>
+                                    <div class="socio-pago-concepto">${p.concepto || 'Pago'}</div>
+                                    <div class="socio-pago-fecha">${p.fecha}</div>
+                                </div>
+                                <div class="socio-pago-monto">${p.monto || '—'}</div>
+                            </div>
+                            <div class="socio-pago-meta">
+                                <span class="socio-mini-pill">${p.metodo || '—'}</span>
+                                <span class="socio-mini-pill ${p.estado === 'Pagado' ? 'ok' : ''}">${p.estado === 'Pagado' ? '✓ ' : ''}${p.estado || '—'}</span>
+                            </div>
+                        </div>`).join('');
+                }
+            } catch (e) {
+                document.getElementById('pagos-lista').innerHTML = '<div class="socio-empty">No se pudo cargar el historial.</div>';
+            }
+
+            // ── Resumen de asistencias del mes actual ──
+            try {
+                const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                const asistenciaMes = await fetch(`/api/socios/${dni}/asistencia?desde=${toYMD(primerDiaMes)}&hasta=${toYMD(hoy)}`).then(r => r.json());
+                const diasAsistidos = asistenciaMes.filter(a => a.asistio);
+
+                document.getElementById('resumen-asist-total').innerHTML = `${diasAsistidos.length}<span>asistencia${diasAsistidos.length === 1 ? '' : 's'}</span>`;
+
+                const ultima = diasAsistidos[diasAsistidos.length - 1];
+                if (!ultima) {
+                    document.getElementById('resumen-ultima-asist').innerText = 'Sin asistencias este mes';
+                } else {
+                    const [d, m, y] = ultima.fecha.split('/').map(Number);
+                    const esHoy = d === hoy.getDate() && m - 1 === hoy.getMonth() && y === hoy.getFullYear();
+                    const diaTexto = esHoy ? 'Hoy' : ultima.fecha;
+                    document.getElementById('resumen-ultima-asist').innerText = ultima.hora ? `${diaTexto} · ${ultima.hora}` : diaTexto;
+                }
+            } catch (e) {
+                document.getElementById('resumen-asist-total').innerText = '—';
+                document.getElementById('resumen-ultima-asist').innerText = '—';
+            }
+
+            // ── Calendario de asistencia, con navegación entre meses ──
+            calOffsetMeses = 0;
+            await renderCalendario(dni);
+        }
+
+        const mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        let calOffsetMeses = 0;
+        let calDniActual = null;
+
+        function toYMD(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        async function renderCalendario(dni) {
+            if (dni) calDniActual = dni;
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+            // Mes que se está mostrando, según el offset (0 = actual, -1 = anterior, etc.)
+            const mesMostrado = new Date(hoy.getFullYear(), hoy.getMonth() + calOffsetMeses, 1);
+            const primerDiaMes = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth(), 1);
+            const ultimoDiaMes = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth() + 1, 0);
+
+            document.getElementById('cal-mes').innerText = `${mesesNombres[mesMostrado.getMonth()]} ${mesMostrado.getFullYear()}`;
+            document.getElementById('cal-next').disabled = calOffsetMeses >= 0;
+
+            let asistencia = [];
+            try {
+                asistencia = await fetch(`/api/socios/${calDniActual}/asistencia?desde=${toYMD(primerDiaMes)}&hasta=${toYMD(ultimoDiaMes)}`).then(r => r.json());
+            } catch (e) {
+                asistencia = [];
+            }
+
+            const asistioPorDia = new Map();
+            asistencia.forEach(a => {
+                const [d] = a.fecha.split('/').map(Number);
+                asistioPorDia.set(d, a.asistio);
+            });
+
+            const esMesActual = mesMostrado.getFullYear() === hoy.getFullYear() && mesMostrado.getMonth() === hoy.getMonth();
+            const celdas = [];
+
+            for (let i = 0; i < primerDiaMes.getDay(); i++) celdas.push('<div class="socio-cal-day vacio"></div>');
+
+            for (let dia = 1; dia <= ultimoDiaMes.getDate(); dia++) {
+                const esFuturo = esMesActual && dia > hoy.getDate();
+                const esHoy = esMesActual && dia === hoy.getDate();
+                const asistio = asistioPorDia.get(dia);
+                const clases = ['socio-cal-day'];
+                if (esFuturo) clases.push('futuro');
+                if (esHoy) clases.push('hoy');
+                if (asistio) clases.push('si');
+                celdas.push(`<div class="${clases.join(' ')}">${dia}</div>`);
+            }
+
+            document.getElementById('cal-grid').innerHTML = celdas.join('');
+        }
+
+        document.getElementById('cal-prev').onclick = () => { calOffsetMeses--; renderCalendario(); };
+        document.getElementById('cal-next').onclick = () => { if (calOffsetMeses < 0) { calOffsetMeses++; renderCalendario(); } };
+
+        document.getElementById('gate-btn').onclick = () => {
+            const dni = document.getElementById('gate-dni').value.trim();
+            document.getElementById('gate-error').style.display = 'none';
+            if (dni) cargarPortal(dni);
+        };
+        document.getElementById('gate-dni').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('gate-btn').click();
+        });
+
+        document.getElementById('btn-salir').onclick = () => {
+            sessionStorage.removeItem('socio_dni');
+            document.getElementById('contenido').hidden = true;
+            document.getElementById('gate').hidden = false;
+            document.getElementById('gate-dni').value = '';
+        };
+
+        // Si ya habia un DNI cargado en esta sesion del navegador, entrar directo
+        const dniGuardado = sessionStorage.getItem('socio_dni');
+        if (dniGuardado) cargarPortal(dniGuardado);
+    })();
+    </script>
+</body>
+</html>
