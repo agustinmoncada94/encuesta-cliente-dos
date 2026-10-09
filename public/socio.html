@@ -9,14 +9,37 @@
 </head>
 <body>
 
-    <!-- Pantalla de acceso: TEMPORAL por DNI, hasta que haya login real del socio -->
+    <!-- Paso 1: DNI -->
     <div class="socio-gate" id="gate">
         <img src="img/logo.png" class="socio-logo" alt="DECLON" />
         <h1>Mi DECLON</h1>
         <p>Ingresá tu DNI para ver tu estado de cuenta.</p>
         <input type="text" id="gate-dni" inputmode="numeric" placeholder="Tu DNI, sin puntos" maxlength="9" />
-        <button id="gate-btn">Ingresar</button>
+        <button id="gate-btn">Continuar</button>
         <div class="socio-gate-error" id="gate-error">No encontramos un socio con ese DNI.</div>
+    </div>
+
+    <!-- Paso 2a: crear contraseña (primera vez que este DNI entra) -->
+    <div class="socio-gate" id="gate-crear" hidden>
+        <img src="img/logo.png" class="socio-logo" alt="DECLON" />
+        <h1>Creá tu contraseña</h1>
+        <p>Es la primera vez que entrás. Elegí una contraseña de 4 números para proteger tu cuenta.</p>
+        <input type="password" id="crear-pin-1" inputmode="numeric" placeholder="Contraseña (4 números)" maxlength="4" />
+        <input type="password" id="crear-pin-2" inputmode="numeric" placeholder="Repetila" maxlength="4" />
+        <button id="crear-pin-btn">Crear contraseña</button>
+        <div class="socio-gate-error" id="crear-pin-error"></div>
+        <button class="socio-gate-volver" id="crear-pin-volver">← Volver</button>
+    </div>
+
+    <!-- Paso 2b: ingresar contraseña (ya existe para este DNI) -->
+    <div class="socio-gate" id="gate-pin" hidden>
+        <img src="img/logo.png" class="socio-logo" alt="DECLON" />
+        <h1>Ingresá tu contraseña</h1>
+        <p id="gate-pin-nombre">—</p>
+        <input type="password" id="login-pin" inputmode="numeric" placeholder="Contraseña (4 números)" maxlength="4" />
+        <button id="login-pin-btn">Ingresar</button>
+        <div class="socio-gate-error" id="login-pin-error">Contraseña incorrecta.</div>
+        <button class="socio-gate-volver" id="login-pin-volver">← Volver</button>
     </div>
 
     <!-- Contenido del socio -->
@@ -67,6 +90,13 @@
             <p class="socio-card-label"><i class="fa-solid fa-dumbbell"></i> Asistencias este mes</p>
             <p class="socio-resumen-numero" id="resumen-asist-total">—<span>asistencias</span></p>
             <p class="socio-resumen-ultima">Última asistencia: <b id="resumen-ultima-asist">—</b></p>
+        </div>
+
+        <!-- Calificar profesores -->
+        <div class="socio-card">
+            <p class="socio-card-label"><i class="fa-solid fa-star"></i> Calificá a tu profesor</p>
+            <p class="socio-voto-ayuda">Tu voto es anónimo. Podés calificar a cada profesor hasta 2 veces por mes.</p>
+            <div id="profesores-lista"><div class="socio-empty">Cargando...</div></div>
         </div>
 
         <!-- 4. Mis datos -->
@@ -150,6 +180,8 @@
 
             sessionStorage.setItem('socio_dni', dni);
             document.getElementById('gate').hidden = true;
+            document.getElementById('gate-crear').hidden = true;
+            document.getElementById('gate-pin').hidden = true;
             document.getElementById('contenido').hidden = false;
 
             document.getElementById('avatar').innerText = iniciales(socio.nombre);
@@ -254,9 +286,66 @@
                 document.getElementById('resumen-ultima-asist').innerText = '—';
             }
 
+            // ── Calificar profesores ──
+            await cargarProfesores(dni);
+
             // ── Calendario de asistencia, con navegación entre meses ──
             calOffsetMeses = 0;
             await renderCalendario(dni);
+        }
+
+        async function cargarProfesores(dni) {
+            const cont = document.getElementById('profesores-lista');
+            try {
+                const profesores = await fetch(`/api/profesores?dni=${encodeURIComponent(dni)}`).then(r => r.json());
+                if (!profesores.length) {
+                    cont.innerHTML = '<div class="socio-empty">Todavía no hay profesores cargados.</div>';
+                    return;
+                }
+                cont.innerHTML = profesores.map(p => `
+                    <div class="socio-profesor-item" data-id="${p.id}">
+                        <div class="socio-profesor-nombre">${p.nombre}</div>
+                        <div class="socio-profesor-estrellas" data-restantes="${p.votosRestantes}">
+                            ${[1,2,3,4,5].map(n => `<i class="fa-solid fa-star" data-valor="${n}"></i>`).join('')}
+                        </div>
+                        <div class="socio-profesor-msg">${p.votosRestantes > 0 ? `Te quedan ${p.votosRestantes} voto${p.votosRestantes === 1 ? '' : 's'} este mes` : 'Ya calificaste el máximo este mes'}</div>
+                    </div>`).join('');
+
+                cont.querySelectorAll('.socio-profesor-item').forEach(item => {
+                    const id = item.dataset.id;
+                    const estrellasWrap = item.querySelector('.socio-profesor-estrellas');
+                    const msg = item.querySelector('.socio-profesor-msg');
+                    if (Number(estrellasWrap.dataset.restantes) <= 0) estrellasWrap.classList.add('agotado');
+
+                    estrellasWrap.querySelectorAll('i').forEach(star => {
+                        star.onclick = async () => {
+                            if (Number(estrellasWrap.dataset.restantes) <= 0) return;
+                            const valor = Number(star.dataset.valor);
+                            const res = await fetch(`/api/profesores/${id}/votar`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ dni, estrellas: valor })
+                            });
+                            const resultado = await res.json();
+                            if (!res.ok) {
+                                msg.innerText = resultado.error || 'No se pudo registrar el voto.';
+                                return;
+                            }
+                            estrellasWrap.querySelectorAll('i').forEach(s => {
+                                s.classList.toggle('activa', Number(s.dataset.valor) <= valor);
+                            });
+                            const restantes = Math.max(0, Number(estrellasWrap.dataset.restantes) - 1);
+                            estrellasWrap.dataset.restantes = restantes;
+                            if (restantes <= 0) estrellasWrap.classList.add('agotado');
+                            msg.innerText = restantes > 0
+                                ? `¡Gracias! Te quedan ${restantes} voto${restantes === 1 ? '' : 's'} este mes`
+                                : '¡Gracias por tu voto! Ya calificaste el máximo este mes';
+                        };
+                    });
+                });
+            } catch (e) {
+                cont.innerHTML = '<div class="socio-empty">No se pudieron cargar los profesores.</div>';
+            }
         }
 
         const mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -314,23 +403,94 @@
         document.getElementById('cal-prev').onclick = () => { calOffsetMeses--; renderCalendario(); };
         document.getElementById('cal-next').onclick = () => { if (calOffsetMeses < 0) { calOffsetMeses++; renderCalendario(); } };
 
-        document.getElementById('gate-btn').onclick = () => {
+        // ── Login en 2 pasos: DNI, y despues crear o ingresar la contraseña (PIN de 4 numeros) ──
+        let dniEnProceso = null;
+
+        function mostrarPantalla(id) {
+            ['gate', 'gate-crear', 'gate-pin'].forEach(g => document.getElementById(g).hidden = (g !== id));
+        }
+
+        document.getElementById('gate-btn').onclick = async () => {
             const dni = document.getElementById('gate-dni').value.trim();
-            document.getElementById('gate-error').style.display = 'none';
-            if (dni) cargarPortal(dni);
+            const errorBox = document.getElementById('gate-error');
+            errorBox.style.display = 'none';
+            if (!dni) return;
+
+            const socio = await buscarSocio(dni);
+            if (!socio) {
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            dniEnProceso = dni;
+            const estado = await fetch(`/api/socios/${encodeURIComponent(dni)}/pin-estado`).then(r => r.json()).catch(() => ({ configurado: false }));
+
+            if (estado.configurado) {
+                document.getElementById('login-pin-error').style.display = 'none';
+                document.getElementById('login-pin').value = '';
+                document.getElementById('gate-pin-nombre').innerText = `Hola, ${socio.nombre}`;
+                mostrarPantalla('gate-pin');
+                document.getElementById('login-pin').focus();
+            } else {
+                document.getElementById('crear-pin-error').style.display = 'none';
+                document.getElementById('crear-pin-1').value = '';
+                document.getElementById('crear-pin-2').value = '';
+                mostrarPantalla('gate-crear');
+                document.getElementById('crear-pin-1').focus();
+            }
         };
         document.getElementById('gate-dni').addEventListener('keydown', e => {
             if (e.key === 'Enter') document.getElementById('gate-btn').click();
         });
 
+        document.getElementById('crear-pin-volver').onclick = () => mostrarPantalla('gate');
+        document.getElementById('login-pin-volver').onclick = () => mostrarPantalla('gate');
+
+        document.getElementById('crear-pin-btn').onclick = async () => {
+            const pin1 = document.getElementById('crear-pin-1').value.trim();
+            const pin2 = document.getElementById('crear-pin-2').value.trim();
+            const errorBox = document.getElementById('crear-pin-error');
+
+            if (!/^\d{4}$/.test(pin1)) { errorBox.innerText = 'La contraseña tiene que ser de 4 números.'; errorBox.style.display = 'block'; return; }
+            if (pin1 !== pin2) { errorBox.innerText = 'Las dos contraseñas no coinciden.'; errorBox.style.display = 'block'; return; }
+
+            const res = await fetch(`/api/socios/${encodeURIComponent(dniEnProceso)}/pin`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pin1 })
+            });
+            const resultado = await res.json();
+            if (!res.ok) { errorBox.innerText = resultado.error || 'No se pudo crear la contraseña.'; errorBox.style.display = 'block'; return; }
+
+            await cargarPortal(dniEnProceso);
+        };
+        document.getElementById('crear-pin-2').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('crear-pin-btn').click();
+        });
+
+        document.getElementById('login-pin-btn').onclick = async () => {
+            const pin = document.getElementById('login-pin').value.trim();
+            const errorBox = document.getElementById('login-pin-error');
+            errorBox.style.display = 'none';
+
+            const res = await fetch(`/api/socios/${encodeURIComponent(dniEnProceso)}/verificar-pin`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin })
+            });
+            const resultado = await res.json();
+            if (!res.ok || !resultado.ok) { errorBox.style.display = 'block'; return; }
+
+            await cargarPortal(dniEnProceso);
+        };
+        document.getElementById('login-pin').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('login-pin-btn').click();
+        });
+
         document.getElementById('btn-salir').onclick = () => {
             sessionStorage.removeItem('socio_dni');
             document.getElementById('contenido').hidden = true;
-            document.getElementById('gate').hidden = false;
             document.getElementById('gate-dni').value = '';
+            mostrarPantalla('gate');
         };
 
-        // Si ya habia un DNI cargado en esta sesion del navegador, entrar directo
+        // Si ya habia un DNI logueado en esta sesion del navegador, entrar directo
         const dniGuardado = sessionStorage.getItem('socio_dni');
         if (dniGuardado) cargarPortal(dniGuardado);
     })();

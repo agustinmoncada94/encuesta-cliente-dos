@@ -84,6 +84,16 @@ body {
     font-size: 0.82rem;
 }
 
+.socio-gate-volver {
+    width: auto !important;
+    background: none !important;
+    color: var(--text-faint) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    padding: 10px !important;
+    margin-top: 10px !important;
+}
+
 /* ── Header ── */
 .socio-header {
     display: flex;
@@ -262,6 +272,48 @@ body {
 }
 
 .socio-resumen-ultima b { color: var(--text-soft); font-weight: 700; }
+
+/* Calificar profesores */
+.socio-voto-ayuda {
+    margin: -4px 0 16px;
+    font-size: 0.78rem;
+    color: var(--text-faint);
+}
+
+.socio-profesor-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.socio-profesor-item:last-child { border-bottom: none; }
+
+.socio-profesor-nombre {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.socio-profesor-estrellas {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.socio-profesor-estrellas i {
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.socio-profesor-estrellas i.activa { color: #f59e0b; }
+.socio-profesor-estrellas.agotado i { cursor: not-allowed; }
+.socio-profesor-estrellas.agotado i.activa { color: rgba(245,158,11,0.4); }
+
+.socio-profesor-msg {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
 
 /* Fila de datos rapidos */
 .socio-info-row {

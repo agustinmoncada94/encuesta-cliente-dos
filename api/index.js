@@ -102,6 +102,60 @@ app.get('/api/socios/:dni', async (req, res) => {
     }
 });
 
+// LOGIN DEL SOCIO (PIN de 4 digitos, guardado aparte del registro del socio para que nunca
+// aparezca en /api/socios/todos ni en ninguna otra respuesta que liste socios).
+const PIN_VALIDO = p => typeof p === 'string' && /^\d{4}$/.test(p);
+
+// Indica si el socio ya configuro su contraseña (para que el portal sepa que pantalla mostrar)
+app.get('/api/socios/:dni/pin-estado', async (req, res) => {
+    try {
+        await conectar();
+        const configurado = await client.exists(`socio_pin:${req.params.dni}`);
+        res.json({ configurado: !!configurado });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Crea la contraseña la primera vez (no permite pisar una ya existente: para eso esta el reset del admin)
+app.post('/api/socios/:dni/pin', async (req, res) => {
+    try {
+        await conectar();
+        if (!PIN_VALIDO(req.body.pin)) return res.status(400).json({ error: 'La contraseña debe ser de 4 números' });
+
+        const yaConfigurado = await client.exists(`socio_pin:${req.params.dni}`);
+        if (yaConfigurado) return res.status(409).json({ error: 'Ya tenés una contraseña configurada' });
+
+        await client.set(`socio_pin:${req.params.dni}`, req.body.pin);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Verifica el PIN al iniciar sesion
+app.post('/api/socios/:dni/verificar-pin', async (req, res) => {
+    try {
+        await conectar();
+        const guardado = await client.get(`socio_pin:${req.params.dni}`);
+        if (!guardado) return res.status(404).json({ error: 'Este socio todavía no configuró su contraseña' });
+        res.json({ ok: guardado === req.body.pin });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Resetear la contraseña de un socio (uso del admin, para cuando el socio se la olvida)
+app.delete('/api/socios/:dni/pin', async (req, res) => {
+    try {
+        await conectar();
+        await client.del(`socio_pin:${req.params.dni}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // REGISTRAR NUEVO
 app.post('/api/registrar', async (req, res) => {
     try {
@@ -591,6 +645,110 @@ app.delete('/api/planes/:id', async (req, res) => {
         await conectar();
         await client.del(`plan:${req.params.id}`);
         res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PROFESORES Y VOTACION (1 a 5 estrellas)
+// El voto se guarda con el DNI del socio solo para limitar a 2 votos por mes por profesor.
+// Ese DNI nunca se devuelve en ninguna respuesta: solo se usan promedio y cantidad total.
+function calcularResumenVotos(votos) {
+    const total = votos.length;
+    const promedio = total ? votos.reduce((s, v) => s + v.estrellas, 0) / total : 0;
+    return { promedio: Math.round(promedio * 10) / 10, totalVotos: total };
+}
+
+// Lista de profesores con su promedio. Si se pasa ?dni=..., incluye cuantos votos le quedan
+// a ESE socio este mes para cada profesor (no expone nada de otros socios).
+app.get('/api/profesores', async (req, res) => {
+    try {
+        await conectar();
+        const keys = await client.keys('profesor:*');
+        const dniConsulta = req.query.dni ? String(req.query.dni) : null;
+        const ahora = new Date();
+        const mesActual = parseInt(ahora.toLocaleString('es-AR', { month: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
+        const anioActual = parseInt(ahora.toLocaleString('es-AR', { year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
+
+        const profesores = await Promise.all(keys.map(async k => {
+            const profesor = JSON.parse(await client.get(k));
+            const rawVotos = await client.get(`votos:profesor:${profesor.id}`);
+            const votos = rawVotos ? JSON.parse(rawVotos) : [];
+            const resumen = calcularResumenVotos(votos);
+
+            let votosRestantes = null;
+            if (dniConsulta) {
+                const votosDelSocioEsteMes = votos.filter(v => v.dni === dniConsulta && v.mes === mesActual && v.anio === anioActual).length;
+                votosRestantes = Math.max(0, 2 - votosDelSocioEsteMes);
+            }
+
+            return { id: profesor.id, nombre: profesor.nombre, ...resumen, ...(dniConsulta ? { votosRestantes } : {}) };
+        }));
+
+        res.json(profesores.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/profesores', async (req, res) => {
+    try {
+        await conectar();
+        const { nombre } = req.body;
+        if (!nombre) return res.status(400).json({ error: 'Falta el nombre del profesor' });
+        const profesor = { id: Date.now(), nombre };
+        await client.set(`profesor:${profesor.id}`, JSON.stringify(profesor));
+        res.json({ success: true, profesor });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/profesores/:id', async (req, res) => {
+    try {
+        await conectar();
+        const key = `profesor:${req.params.id}`;
+        const existing = await client.get(key);
+        if (!existing) return res.status(404).json({ error: 'Profesor no encontrado' });
+        const updated = { ...JSON.parse(existing), ...req.body, id: parseInt(req.params.id) };
+        await client.set(key, JSON.stringify(updated));
+        res.json({ success: true, profesor: updated });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/profesores/:id', async (req, res) => {
+    try {
+        await conectar();
+        await client.del(`profesor:${req.params.id}`);
+        await client.del(`votos:profesor:${req.params.id}`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// REGISTRAR UN VOTO (1 a 5 estrellas) - maximo 2 votos por socio por profesor por mes calendario
+app.post('/api/profesores/:id/votar', async (req, res) => {
+    try {
+        await conectar();
+        const { dni, estrellas } = req.body;
+        const estrellasNum = parseInt(estrellas, 10);
+        if (!dni) return res.status(400).json({ error: 'Falta el DNI del socio' });
+        if (!estrellasNum || estrellasNum < 1 || estrellasNum > 5) return res.status(400).json({ error: 'El puntaje debe ser de 1 a 5' });
+
+        const existeProfesor = await client.exists(`profesor:${req.params.id}`);
+        if (!existeProfesor) return res.status(404).json({ error: 'Profesor no encontrado' });
+
+        const key = `votos:profesor:${req.params.id}`;
+        const raw = await client.get(key);
+        const votos = raw ? JSON.parse(raw) : [];
+
+        const ahora = new Date();
+        const mes = parseInt(ahora.toLocaleString('es-AR', { month: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
+        const anio = parseInt(ahora.toLocaleString('es-AR', { year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
+        const fecha = ahora.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+
+        const votosEsteMes = votos.filter(v => v.dni === String(dni) && v.mes === mes && v.anio === anio).length;
+        if (votosEsteMes >= 2) {
+            return res.status(429).json({ error: 'Ya calificaste a este profesor el máximo de veces este mes.' });
+        }
+
+        votos.push({ id: Date.now(), dni: String(dni), estrellas: estrellasNum, mes, anio, fecha });
+        await client.set(key, JSON.stringify(votos));
+
+        res.json({ success: true, ...calcularResumenVotos(votos) });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

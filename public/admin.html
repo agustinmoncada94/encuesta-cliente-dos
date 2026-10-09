@@ -47,6 +47,11 @@
                     <span>Planes</span>
                 </button>
 
+                <button class="nav-link" id="nav-profesores" onclick="switchTab('profesores')">
+                    <i class="fas fa-star"></i>
+                    <span>Profesores</span>
+                </button>
+
                 <button class="nav-link" id="nav-preinscripciones" onclick="switchTab('preinscripciones')">
                     <i class="fas fa-user-clock"></i>
                     <span>Preinscripciones</span>
@@ -118,7 +123,7 @@
             }
             if (!esAdmin) {
                 // Ocultar tabs que Profesor no puede ver
-                ['nav-dashboard', 'nav-equipos', 'nav-planes', 'nav-preinscripciones'].forEach(id => {
+                ['nav-dashboard', 'nav-equipos', 'nav-planes', 'nav-profesores', 'nav-preinscripciones'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
                 });
@@ -179,6 +184,19 @@
             // Acciones rápidas
             document.getElementById('det-btn-cobrar').onclick  = async () => { await cobrarMes(dni); verDetalle(dni); };
             document.getElementById('det-btn-editar').onclick  = () => prepararEdicion(s);
+            document.getElementById('det-btn-reset-pin').onclick = async () => {
+                const ok = await confirmar({
+                    icono: '🔑',
+                    titulo: '¿Resetear la contraseña del Portal?',
+                    detalle: `<strong>${s.nombre.toUpperCase()}</strong> va a tener que crear una contraseña nueva la próxima vez que entre al Portal del Socio con su DNI.`,
+                    labelOk: 'Sí, resetear',
+                    colorOk: '#60a5fa',
+                    colorOkText: '#000'
+                });
+                if (!ok) return;
+                await fetch(`/api/socios/${dni}/pin`, { method: 'DELETE' });
+                alert('Listo, la próxima vez que entre va a poder crear una contraseña nueva.');
+            };
             document.getElementById('det-btn-eliminar').onclick = () => { borrarSocio(dni); };
 
             // ── Historial de pagos ────────────────────────────────────────
@@ -264,7 +282,7 @@
 
         async function switchTab(tabName) {
             // Bloquear acceso a tabs restringidos para Profesor
-            if (!esAdmin && ['dashboard', 'equipos', 'planes', 'preinscripciones'].includes(tabName)) {
+            if (!esAdmin && ['dashboard', 'equipos', 'planes', 'profesores', 'preinscripciones'].includes(tabName)) {
                 await confirmar({
                     icono: '🔒',
                     titulo: 'Acceso restringido',
@@ -284,6 +302,7 @@
                     socios_lista: 'Socios',
                     socios_registro: 'Registrar Socio',
                     planes: 'Planes',
+                    profesores: 'Profesores',
                     preinscripciones: 'Preinscripciones',
                     equipos: 'Equipamiento',
                     dashboard: 'Dashboard KPI'

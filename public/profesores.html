@@ -1,0 +1,160 @@
+<div class="eqv2-wrap">
+
+    <div class="eqv2-header">
+        <div>
+            <h1 class="equip-titulo">Profesores</h1>
+        </div>
+        <button class="eq-btn-primary" id="pf-btn-nuevo">+ Nuevo profesor</button>
+    </div>
+
+    <div class="eqv2-card">
+        <div class="eqv2-card-title">Calificaciones de los socios</div>
+        <p style="font-size:.8rem;color:var(--text-faint);margin:-8px 0 16px">
+            Los votos son anónimos: nunca se muestra qué socio calificó a quién, solo el promedio.
+        </p>
+        <div style="overflow-x:auto">
+            <table class="eqv2-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Calificación</th>
+                        <th>Votos recibidos</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="pf-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal nuevo/editar profesor -->
+<div id="pf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:380px">
+        <h3 class="modal-titulo" id="pf-modal-titulo">➕ Nuevo profesor</h3>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+            <div>
+                <label class="modal-label">NOMBRE *</label>
+                <input class="admin-input" id="pf-nombre" placeholder="Ej: Martín Gómez">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="det-btn-volver" style="flex:1" id="pf-modal-cancelar">Cancelar</button>
+                <button class="eq-btn-primary" style="flex:1" id="pf-modal-guardar">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    let profesoresData = [];
+    let modoEdicion = null;
+
+    function estrellasHTML(promedio) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            html += `<i class="fa-solid fa-star" style="color:${i <= Math.round(promedio) ? '#f59e0b' : 'rgba(255,255,255,0.15)'}"></i>`;
+        }
+        return html;
+    }
+
+    async function cargarProfesores() {
+        profesoresData = await fetch('/api/profesores').then(r => r.json()).catch(() => []);
+        renderProfesores();
+    }
+
+    function renderProfesores() {
+        const tbody = document.getElementById('pf-body');
+        if (!profesoresData.length) {
+            tbody.innerHTML = `<tr><td colspan="4">
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">🧑‍🏫</div><p>No hay profesores cargados todavía.</p></div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = profesoresData.map(p => `
+            <tr>
+                <td><b>${p.nombre}</b></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:.9rem">${estrellasHTML(p.promedio)}</span>
+                        <b>${p.totalVotos ? p.promedio.toFixed(1) : '—'}</b>
+                    </div>
+                </td>
+                <td>${p.totalVotos} voto${p.totalVotos === 1 ? '' : 's'}</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <button class="eqv2-btn-ghost" style="padding:7px 12px;font-size:.8rem" onclick="pfEditar(${p.id})">✏️ Editar</button>
+                        <button class="eqv2-btn-danger" onclick="pfEliminar(${p.id})">🗑️</button>
+                    </div>
+                </td>
+            </tr>`).join('');
+    }
+
+    function abrirModal(titulo) {
+        document.getElementById('pf-modal-titulo').innerText = titulo;
+        document.getElementById('pf-modal').style.display = 'flex';
+    }
+    function cerrarModal() {
+        document.getElementById('pf-modal').style.display = 'none';
+    }
+    function limpiarForm() {
+        modoEdicion = null;
+        document.getElementById('pf-nombre').value = '';
+    }
+
+    document.getElementById('pf-btn-nuevo').onclick = () => {
+        limpiarForm();
+        abrirModal('➕ Nuevo profesor');
+    };
+
+    document.getElementById('pf-modal-cancelar').onclick = cerrarModal;
+    document.getElementById('pf-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('pf-modal')) cerrarModal();
+    });
+
+    window.pfEditar = function (id) {
+        const p = profesoresData.find(x => x.id === id);
+        if (!p) return;
+        modoEdicion = id;
+        document.getElementById('pf-nombre').value = p.nombre;
+        abrirModal('✏️ Editar profesor');
+    };
+
+    window.pfEliminar = async function (id) {
+        const p = profesoresData.find(x => x.id === id);
+        const ok = await confirmar({
+            icono: '🗑️',
+            titulo: '¿Eliminar profesor?',
+            detalle: `Se eliminará a <strong>${p ? p.nombre : 'este profesor'}</strong> y sus calificaciones.`,
+            labelOk: 'Sí, eliminar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+        await fetch(`/api/profesores/${id}`, { method: 'DELETE' });
+        await cargarProfesores();
+    };
+
+    document.getElementById('pf-modal-guardar').onclick = async function () {
+        const nombre = document.getElementById('pf-nombre').value.trim();
+        if (!nombre) { alert('Completá el nombre.'); return; }
+
+        const datos = { nombre };
+
+        if (modoEdicion) {
+            await fetch(`/api/profesores/${modoEdicion}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+            });
+        } else {
+            await fetch('/api/profesores', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+            });
+        }
+
+        cerrarModal();
+        await cargarProfesores();
+    };
+
+    cargarProfesores();
+})();
+</script>
