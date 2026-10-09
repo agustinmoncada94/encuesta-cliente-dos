@@ -106,6 +106,18 @@ app.get('/api/socios/:dni', async (req, res) => {
 // aparezca en /api/socios/todos ni en ninguna otra respuesta que liste socios).
 const PIN_VALIDO = p => typeof p === 'string' && /^\d{4}$/.test(p);
 
+// Solo confirma si el DNI pertenece a un socio, sin devolver ningun dato personal
+// (se usa en el primer paso del login, antes de pedir la contraseña).
+app.get('/api/socios/:dni/existe', async (req, res) => {
+    try {
+        await conectar();
+        const existe = await client.exists(`socio:${req.params.dni}`);
+        res.json({ existe: !!existe });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Indica si el socio ya configuro su contraseña (para que el portal sepa que pantalla mostrar)
 app.get('/api/socios/:dni/pin-estado', async (req, res) => {
     try {

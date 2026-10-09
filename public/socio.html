@@ -35,7 +35,7 @@
     <div class="socio-gate" id="gate-pin" hidden>
         <img src="img/logo.png" class="socio-logo" alt="DECLON" />
         <h1>Ingresá tu contraseña</h1>
-        <p id="gate-pin-nombre">—</p>
+        <p>Escribí tu contraseña de 4 números para continuar.</p>
         <input type="password" id="login-pin" inputmode="numeric" placeholder="Contraseña (4 números)" maxlength="4" />
         <button id="login-pin-btn">Ingresar</button>
         <div class="socio-gate-error" id="login-pin-error">Contraseña incorrecta.</div>
@@ -416,8 +416,8 @@
             errorBox.style.display = 'none';
             if (!dni) return;
 
-            const socio = await buscarSocio(dni);
-            if (!socio) {
+            const { existe } = await fetch(`/api/socios/${encodeURIComponent(dni)}/existe`).then(r => r.json()).catch(() => ({ existe: false }));
+            if (!existe) {
                 errorBox.style.display = 'block';
                 return;
             }
@@ -428,7 +428,6 @@
             if (estado.configurado) {
                 document.getElementById('login-pin-error').style.display = 'none';
                 document.getElementById('login-pin').value = '';
-                document.getElementById('gate-pin-nombre').innerText = `Hola, ${socio.nombre}`;
                 mostrarPantalla('gate-pin');
                 document.getElementById('login-pin').focus();
             } else {
