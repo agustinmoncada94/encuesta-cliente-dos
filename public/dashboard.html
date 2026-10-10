@@ -218,6 +218,7 @@
                 <p class="dash-kpi-label">Balance (lo que debería haber)</p>
                 <p class="dash-kpi-value" id="gasto-kpi-balance">—</p>
                 <p class="dash-kpi-delta">Entradas − Gastos del período</p>
+                <div id="gasto-balance-metodos" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
             </div>
         </div>
 
@@ -394,6 +395,38 @@
         const balanceEl = document.getElementById('gasto-kpi-balance');
         balanceEl.innerText = (balance < 0 ? '-$' : '$') + Math.abs(balance).toLocaleString('es-AR');
         balanceEl.style.color = balance < 0 ? 'var(--danger)' : 'var(--success)';
+        renderBalancePorMetodo(gastosFiltrados);
+    }
+
+    // Un gasto por "Transferencia Mercado Pago" o "Transferencia Galicia" resta siempre del balance
+    // de Transferencia, sea cual sea la transferencia elegida.
+    function agruparMetodoGasto(metodo) {
+        return String(metodo || '').startsWith('Transferencia') ? 'Transferencia' : 'Efectivo';
+    }
+
+    // Balance (Entradas - Gastos) separado por Efectivo y Transferencia, debajo del Balance total.
+    function renderBalancePorMetodo(gastosFiltrados) {
+        const cont = document.getElementById('gasto-balance-metodos');
+        if (!cont) return;
+        const datos = window._dashMetodoTotales;
+        if (!datos) { cont.innerHTML = ''; return; }
+        const { metodos, metodoColor, metodoTotales } = datos;
+
+        const gastosPorMetodo = { Efectivo: 0, Transferencia: 0 };
+        gastosFiltrados.forEach(g => {
+            gastosPorMetodo[agruparMetodoGasto(g.metodo)] += Number(g.monto) || 0;
+        });
+
+        cont.innerHTML = metodos.map((m, i) => {
+            const balanceM = (metodoTotales[i] || 0) - (gastosPorMetodo[m] || 0);
+            const signo = balanceM < 0 ? '-$' : '$';
+            return `
+            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);border-radius:20px;padding:4px 10px 4px 8px;font-size:.74rem">
+                <span style="width:8px;height:8px;border-radius:50%;background:${metodoColor[i]};flex-shrink:0"></span>
+                <span style="color:var(--text-faint)">${m}</span>
+                <b style="color:${balanceM < 0 ? 'var(--danger)' : 'var(--text)'}">${signo}${Math.abs(balanceM).toLocaleString('es-AR')}</b>
+            </span>`;
+        }).join('');
     }
 
     function limpiarFormGasto() {
