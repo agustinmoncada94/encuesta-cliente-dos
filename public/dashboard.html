@@ -189,6 +189,37 @@
     <!-- ══ PANEL: GASTOS ══ -->
     <div class="eqv2-panel" id="dash-panel-gastos">
 
+        <!-- KPIs del período (mismo rango de fechas que la pestaña Entradas) -->
+        <div class="dash-kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="dash-kpi-card">
+                <div class="dash-kpi-top">
+                    <div class="dash-kpi-icon">💰</div>
+                    <span class="dash-kpi-badge">KPI</span>
+                </div>
+                <p class="dash-kpi-label">Entradas del período</p>
+                <p class="dash-kpi-value" id="gasto-kpi-entradas">—</p>
+                <p class="dash-kpi-delta dash-delta-ok">Mismo rango que la pestaña Entradas</p>
+            </div>
+            <div class="dash-kpi-card">
+                <div class="dash-kpi-top">
+                    <div class="dash-kpi-icon dash-kpi-icon-danger">💸</div>
+                    <span class="dash-kpi-badge">KPI</span>
+                </div>
+                <p class="dash-kpi-label">Gastos del período</p>
+                <p class="dash-kpi-value" id="gasto-kpi-total">—</p>
+                <p class="dash-kpi-delta" id="gasto-kpi-cantidad">Cargando...</p>
+            </div>
+            <div class="dash-kpi-card">
+                <div class="dash-kpi-top">
+                    <div class="dash-kpi-icon">🏦</div>
+                    <span class="dash-kpi-badge">KPI</span>
+                </div>
+                <p class="dash-kpi-label">Balance (lo que debería haber)</p>
+                <p class="dash-kpi-value" id="gasto-kpi-balance">—</p>
+                <p class="dash-kpi-delta">Entradas − Gastos del período</p>
+            </div>
+        </div>
+
         <div class="eqv2-card">
             <div class="eqv2-card-title" id="gasto-form-titulo">Registrar gasto</div>
             <div class="eqv2-form-grid">
@@ -222,6 +253,9 @@
 
         <div class="eqv2-card">
             <div class="eqv2-card-title">Historial de gastos</div>
+            <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
+                Mostrando el período seleccionado en la pestaña Entradas: <b id="gasto-rango-texto">—</b>
+            </p>
             <div style="overflow-x:auto">
                 <table class="eqv2-table">
                     <thead>
@@ -277,21 +311,46 @@
         renderGastos();
     }
 
+    function fmtFecha(iso) {
+        const [y, m, d] = String(iso || '').split('-');
+        return (y && m && d) ? `${d}/${m}/${y}` : (iso || '—');
+    }
+
+    // Lee el mismo rango Desde/Hasta que usa la pestaña Entradas (inputs compartidos en el documento).
+    function obtenerRangoFechas() {
+        return {
+            desde: document.getElementById('dash-desde')?.value || '',
+            hasta: document.getElementById('dash-hasta')?.value || ''
+        };
+    }
+
+    // Lee el total de Entradas del período ya calculado por cargarDashboardKPIs() (pestaña Entradas).
+    function leerEntradasDelPeriodo() {
+        const el = document.getElementById('kpi-ingresos');
+        const n = el ? parseInt(el.innerText.replace(/[^0-9]/g, ''), 10) : NaN;
+        return isNaN(n) ? 0 : n;
+    }
+
     function renderGastos() {
+        const { desde, hasta } = obtenerRangoFechas();
+        const gastosFiltrados = gastosData.filter(g => {
+            if (desde && g.fecha < desde) return false;
+            if (hasta && g.fecha > hasta) return false;
+            return true;
+        });
+
+        const rangoTexto = document.getElementById('gasto-rango-texto');
+        if (rangoTexto) rangoTexto.innerText = (desde || hasta) ? `${fmtFecha(desde)} → ${fmtFecha(hasta)}` : 'todas las fechas';
+
         const tbody = document.getElementById('gasto-body');
-        if (!gastosData.length) {
+        if (!gastosFiltrados.length) {
             tbody.innerHTML = `<tr><td colspan="5">
-                <div class="eqv2-empty"><div class="eqv2-empty-icon">💸</div><p>Todavía no hay gastos registrados.</p></div>
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">💸</div><p>No hay gastos registrados en este período.</p></div>
             </td></tr>`;
-            document.getElementById('gasto-total').innerText = '$0';
-            return;
-        }
-        tbody.innerHTML = gastosData.map(g => {
-            const [y, m, d] = String(g.fecha).split('-');
-            const fechaFmt = (y && m && d) ? `${d}/${m}/${y}` : g.fecha;
-            return `
+        } else {
+            tbody.innerHTML = gastosFiltrados.map(g => `
             <tr>
-                <td>${fechaFmt}</td>
+                <td>${fmtFecha(g.fecha)}</td>
                 <td>${g.concepto}</td>
                 <td>${g.metodo}</td>
                 <td>${g.monto ? '$' + Number(g.monto).toLocaleString('es-AR') : '—'}</td>
@@ -300,11 +359,23 @@
                         <button class="eqv2-btn-danger" onclick="gastoEliminar(${g.id})">🗑️</button>
                     </div>
                 </td>
-            </tr>`;
-        }).join('');
+            </tr>`).join('');
+        }
 
-        const total = gastosData.reduce((s, g) => s + (Number(g.monto) || 0), 0);
-        document.getElementById('gasto-total').innerText = '$' + total.toLocaleString('es-AR');
+        const totalGastos = gastosFiltrados.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+        document.getElementById('gasto-total').innerText = '$' + totalGastos.toLocaleString('es-AR');
+
+        // KPIs: Entradas del período, Gastos del período y Balance (lo que debería haber)
+        const totalEntradas = leerEntradasDelPeriodo();
+        const balance = totalEntradas - totalGastos;
+        document.getElementById('gasto-kpi-entradas').innerText = '$' + totalEntradas.toLocaleString('es-AR');
+        document.getElementById('gasto-kpi-total').innerText = '$' + totalGastos.toLocaleString('es-AR');
+        document.getElementById('gasto-kpi-cantidad').innerText =
+            `${gastosFiltrados.length} gasto${gastosFiltrados.length === 1 ? '' : 's'} en el período`;
+
+        const balanceEl = document.getElementById('gasto-kpi-balance');
+        balanceEl.innerText = (balance < 0 ? '-$' : '$') + Math.abs(balance).toLocaleString('es-AR');
+        balanceEl.style.color = balance < 0 ? 'var(--danger)' : 'var(--success)';
     }
 
     function limpiarFormGasto() {
