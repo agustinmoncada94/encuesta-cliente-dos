@@ -70,9 +70,9 @@ app.post('/api/auth/login', (req, res) => {
     const esAdminNombrado = adminsExtra.some(u => u.usuario === usuario && u.password === password);
 
     if ((usuario === adminUser && password === adminPass) || esAdminNombrado) {
-        res.json({ ok: true, token: token(), expiry, role: 'admin' });
+        res.json({ ok: true, token: token(), expiry, role: 'admin', usuario });
     } else if (usuario === profUser && password === profPass) {
-        res.json({ ok: true, token: token(), expiry, role: 'profesor' });
+        res.json({ ok: true, token: token(), expiry, role: 'profesor', usuario });
     } else {
         res.status(401).json({ ok: false, message: 'Usuario o contraseña incorrectos.' });
     }
@@ -673,9 +673,13 @@ app.get('/api/gastos', async (req, res) => {
 app.post('/api/gastos', async (req, res) => {
     try {
         await conectar();
-        const { fecha, concepto, metodo, monto } = req.body;
+        const { fecha, concepto, metodo, monto, registradoPor } = req.body;
         if (!fecha || !concepto || !metodo) return res.status(400).json({ error: 'Faltan datos del gasto (fecha, concepto, método)' });
-        const gasto = { id: Date.now(), fecha, concepto, metodo, monto: (monto !== undefined && monto !== null && monto !== '') ? Number(monto) : null };
+        const gasto = {
+            id: Date.now(), fecha, concepto, metodo,
+            monto: (monto !== undefined && monto !== null && monto !== '') ? Number(monto) : null,
+            registradoPor: registradoPor || '—'
+        };
         await client.set(`gasto:${gasto.id}`, JSON.stringify(gasto));
         res.json({ success: true, gasto });
     } catch (e) { res.status(500).json({ error: e.message }); }

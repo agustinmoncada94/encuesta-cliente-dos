@@ -174,7 +174,8 @@
                     localStorage.setItem('gym_session', JSON.stringify({
                         token: data.token,
                         expiry: data.expiry,
-                        role: data.role || 'admin'
+                        role: data.role || 'admin',
+                        usuario: data.usuario || usuario
                     }));
                     window.location.href = '/admin.html';
                 } else {

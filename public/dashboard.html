@@ -261,7 +261,7 @@
             <div style="overflow-x:auto">
                 <table class="eqv2-table">
                     <thead>
-                        <tr><th>Fecha</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Acción</th></tr>
+                        <tr><th>Fecha</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Registrado por</th><th>Acción</th></tr>
                     </thead>
                     <tbody id="gasto-body"></tbody>
                 </table>
@@ -362,7 +362,7 @@
 
         const tbody = document.getElementById('gasto-body');
         if (!gastosFiltrados.length) {
-            tbody.innerHTML = `<tr><td colspan="5">
+            tbody.innerHTML = `<tr><td colspan="6">
                 <div class="eqv2-empty"><div class="eqv2-empty-icon">💸</div><p>No hay gastos registrados en este período.</p></div>
             </td></tr>`;
         } else {
@@ -372,6 +372,7 @@
                 <td>${g.concepto}</td>
                 <td>${g.metodo}</td>
                 <td>${g.monto ? '$' + Number(g.monto).toLocaleString('es-AR') : '—'}</td>
+                <td>${g.registradoPor || '—'}</td>
                 <td>
                     <div style="display:flex;gap:6px">
                         <button class="eqv2-btn-danger" onclick="gastoEliminar(${g.id})">🗑️</button>
@@ -449,7 +450,11 @@
         await fetch('/api/gastos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fecha, concepto, metodo, monto: monto ? Number(monto) : null })
+            body: JSON.stringify({
+                fecha, concepto, metodo,
+                monto: monto ? Number(monto) : null,
+                registradoPor: window._sessionUsuario || '—'
+            })
         });
 
         limpiarFormGasto();

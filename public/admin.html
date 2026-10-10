@@ -110,6 +110,8 @@
         const _session = JSON.parse(localStorage.getItem('gym_session') || '{}');
         const ROL      = (_session.role || 'admin').toLowerCase();
         const esAdmin  = ROL === 'admin';
+        // Expuesto para que las pestañas (ej. Gastos) sepan quién está registrando cada dato.
+        window._sessionUsuario = _session.usuario || (esAdmin ? 'Admin' : 'Profesor');
 
         // Aplicar restricciones de sidebar según rol
         (function aplicarRol() {
