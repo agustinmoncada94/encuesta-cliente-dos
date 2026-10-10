@@ -4,8 +4,20 @@
     <div class="dash-page-header">
         <div>
             <h1 class="equip-titulo">Dashboard KPI</h1>
-            <p class="dash-subtitle">Vista general del negocio con ingresos, estado de socios, asistencia y mantenimiento de equipamiento.</p>
+            <p class="dash-subtitle">Vista general del negocio: entradas (pagos), gastos, estado de socios, asistencia y mantenimiento de equipamiento.</p>
         </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="eqv2-tabs">
+        <button class="eqv2-tab active" id="dash-tab-entradas">📈 Entradas</button>
+        <button class="eqv2-tab" id="dash-tab-gastos">💸 Gastos</button>
+    </div>
+
+    <!-- ══ PANEL: ENTRADAS ══ -->
+    <div class="eqv2-panel active" id="dash-panel-entradas">
+
+    <div class="dash-page-header" style="margin-bottom:4px">
         <div class="equip-header-actions">
             <div class="dash-filtro-fecha">
                 <input type="date" id="dash-desde" class="dash-filtro-input" title="Desde">
@@ -170,6 +182,62 @@
             </div>
         </div>
     </div>
+
+    </div>
+    <!-- ══ FIN PANEL ENTRADAS ══ -->
+
+    <!-- ══ PANEL: GASTOS ══ -->
+    <div class="eqv2-panel" id="dash-panel-gastos">
+
+        <div class="eqv2-card">
+            <div class="eqv2-card-title" id="gasto-form-titulo">Registrar gasto</div>
+            <div class="eqv2-form-grid">
+                <div>
+                    <label class="eqv2-label">Fecha *</label>
+                    <input class="eqv2-input" type="date" id="gasto-fecha">
+                </div>
+                <div>
+                    <label class="eqv2-label">Método *</label>
+                    <select class="eqv2-select" id="gasto-metodo" style="width:100%">
+                        <option value="" disabled selected>Seleccionar</option>
+                        <option>Transferencia Mercado Pago</option>
+                        <option>Transferencia Galicia</option>
+                        <option>Efectivo</option>
+                    </select>
+                </div>
+                <div class="full">
+                    <label class="eqv2-label">¿Qué fue el gasto? *</label>
+                    <input class="eqv2-input" id="gasto-concepto" placeholder="Ej: Compra de mancuernas">
+                </div>
+                <div>
+                    <label class="eqv2-label">Monto</label>
+                    <input class="eqv2-input" type="number" min="0" id="gasto-monto" placeholder="Ej: 15000">
+                </div>
+                <div class="full" style="display:flex;gap:12px;margin-top:8px">
+                    <button class="eqv2-btn-ghost" id="gasto-btn-limpiar">Limpiar</button>
+                    <button class="eq-btn-primary" id="gasto-btn-guardar" style="margin-left:auto">Registrar gasto</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="eqv2-card">
+            <div class="eqv2-card-title">Historial de gastos</div>
+            <div style="overflow-x:auto">
+                <table class="eqv2-table">
+                    <thead>
+                        <tr><th>Fecha</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="gasto-body"></tbody>
+                </table>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:14px;font-size:.9rem;color:var(--text-soft)">
+                Total del período: <b style="color:var(--primary);margin-left:6px" id="gasto-total">$0</b>
+            </div>
+        </div>
+
+    </div>
+    <!-- ══ FIN PANEL GASTOS ══ -->
+
 </div>
 
 <!-- Charts y KPIs inicializados desde admin.html via cargarDashboardKPIs() -->
@@ -187,6 +255,98 @@
         a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txt);
         a.download = `reporte_dashboard_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.txt`;
         a.click();
+    };
+
+    // ── Tabs Entradas / Gastos ──────────────────────────────────────────
+    function activarDashTab(nombre) {
+        document.querySelectorAll('#dash-panel-entradas, #dash-panel-gastos').forEach(p => p.classList.remove('active'));
+        document.getElementById('dash-tab-entradas').classList.remove('active');
+        document.getElementById('dash-tab-gastos').classList.remove('active');
+        document.getElementById('dash-panel-' + nombre).classList.add('active');
+        document.getElementById('dash-tab-' + nombre).classList.add('active');
+        if (nombre === 'gastos') cargarGastos();
+    }
+    document.getElementById('dash-tab-entradas').onclick = () => activarDashTab('entradas');
+    document.getElementById('dash-tab-gastos').onclick   = () => activarDashTab('gastos');
+
+    // ── Gastos: alta + listado ───────────────────────────────────────────
+    let gastosData = [];
+
+    async function cargarGastos() {
+        gastosData = await fetch('/api/gastos').then(r => r.json()).catch(() => []);
+        renderGastos();
+    }
+
+    function renderGastos() {
+        const tbody = document.getElementById('gasto-body');
+        if (!gastosData.length) {
+            tbody.innerHTML = `<tr><td colspan="5">
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">💸</div><p>Todavía no hay gastos registrados.</p></div>
+            </td></tr>`;
+            document.getElementById('gasto-total').innerText = '$0';
+            return;
+        }
+        tbody.innerHTML = gastosData.map(g => {
+            const [y, m, d] = String(g.fecha).split('-');
+            const fechaFmt = (y && m && d) ? `${d}/${m}/${y}` : g.fecha;
+            return `
+            <tr>
+                <td>${fechaFmt}</td>
+                <td>${g.concepto}</td>
+                <td>${g.metodo}</td>
+                <td>${g.monto ? '$' + Number(g.monto).toLocaleString('es-AR') : '—'}</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <button class="eqv2-btn-danger" onclick="gastoEliminar(${g.id})">🗑️</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+
+        const total = gastosData.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+        document.getElementById('gasto-total').innerText = '$' + total.toLocaleString('es-AR');
+    }
+
+    function limpiarFormGasto() {
+        document.getElementById('gasto-fecha').value = '';
+        document.getElementById('gasto-metodo').value = '';
+        document.getElementById('gasto-concepto').value = '';
+        document.getElementById('gasto-monto').value = '';
+    }
+
+    document.getElementById('gasto-btn-limpiar').onclick = limpiarFormGasto;
+
+    document.getElementById('gasto-btn-guardar').onclick = async function () {
+        const fecha    = document.getElementById('gasto-fecha').value;
+        const metodo   = document.getElementById('gasto-metodo').value;
+        const concepto = document.getElementById('gasto-concepto').value.trim();
+        const monto    = document.getElementById('gasto-monto').value;
+
+        if (!fecha || !metodo || !concepto) { alert('Completá la fecha, qué fue el gasto y el método.'); return; }
+
+        await fetch('/api/gastos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fecha, concepto, metodo, monto: monto ? Number(monto) : null })
+        });
+
+        limpiarFormGasto();
+        await cargarGastos();
+    };
+
+    window.gastoEliminar = async function (id) {
+        const g = gastosData.find(x => x.id === id);
+        const ok = await confirmar({
+            icono: '🗑️',
+            titulo: '¿Eliminar gasto?',
+            detalle: `Se eliminará el gasto <strong>${g ? g.concepto : ''}</strong>.`,
+            labelOk: 'Sí, eliminar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+        await fetch(`/api/gastos/${id}`, { method: 'DELETE' });
+        await cargarGastos();
     };
 })();
 </script>
