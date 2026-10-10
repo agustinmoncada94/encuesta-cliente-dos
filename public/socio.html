@@ -95,7 +95,7 @@
         <!-- Calificar profesores -->
         <div class="socio-card">
             <p class="socio-card-label"><i class="fa-solid fa-star"></i> Calificá a tu profesor</p>
-            <p class="socio-voto-ayuda">Tu voto es anónimo. Podés calificar a cada profesor hasta 2 veces por mes.</p>
+            <p class="socio-voto-ayuda">Tu voto es anónimo. Tenés 2 votos por mes para repartir entre los profesores.</p>
             <div id="profesores-lista"><div class="socio-empty">Cargando...</div></div>
         </div>
 
@@ -308,7 +308,7 @@
                         <div class="socio-profesor-estrellas" data-restantes="${p.votosRestantes}">
                             ${[1,2,3,4,5].map(n => `<i class="fa-solid fa-star" data-valor="${n}"></i>`).join('')}
                         </div>
-                        <div class="socio-profesor-msg">${p.votosRestantes > 0 ? `Te quedan ${p.votosRestantes} voto${p.votosRestantes === 1 ? '' : 's'} este mes` : 'Ya calificaste el máximo este mes'}</div>
+                        <div class="socio-profesor-msg">${p.votosRestantes > 0 ? `Te quedan ${p.votosRestantes} voto${p.votosRestantes === 1 ? '' : 's'} este mes` : 'Ya usaste tus votos de este mes'}</div>
                     </div>`).join('');
 
                 cont.querySelectorAll('.socio-profesor-item').forEach(item => {
@@ -334,12 +334,23 @@
                             estrellasWrap.querySelectorAll('i').forEach(s => {
                                 s.classList.toggle('activa', Number(s.dataset.valor) <= valor);
                             });
-                            const restantes = Math.max(0, Number(estrellasWrap.dataset.restantes) - 1);
-                            estrellasWrap.dataset.restantes = restantes;
-                            if (restantes <= 0) estrellasWrap.classList.add('agotado');
+                            const restantes = resultado.votosRestantes;
                             msg.innerText = restantes > 0
                                 ? `¡Gracias! Te quedan ${restantes} voto${restantes === 1 ? '' : 's'} este mes`
-                                : '¡Gracias por tu voto! Ya calificaste el máximo este mes';
+                                : '¡Gracias por tu voto! Ya usaste tus votos de este mes';
+
+                            // El limite de 2 votos es por mes EN TOTAL, no por profesor:
+                            // actualizamos el contador en todas las tarjetas, no solo en esta.
+                            cont.querySelectorAll('.socio-profesor-item').forEach(otroItem => {
+                                const otraEstrellasWrap = otroItem.querySelector('.socio-profesor-estrellas');
+                                otraEstrellasWrap.dataset.restantes = restantes;
+                                otraEstrellasWrap.classList.toggle('agotado', restantes <= 0);
+                                if (otroItem !== item) {
+                                    otroItem.querySelector('.socio-profesor-msg').innerText = restantes > 0
+                                        ? `Te quedan ${restantes} voto${restantes === 1 ? '' : 's'} este mes`
+                                        : 'Ya usaste tus votos de este mes';
+                                }
+                            });
                         };
                     });
                 });
