@@ -706,8 +706,8 @@ app.delete('/api/gastos/:id', async (req, res) => {
 });
 
 // PROFESORES Y VOTACION (1 a 5 estrellas)
-// El voto se guarda con el DNI del socio solo para limitar a 2 votos por mes EN TOTAL
-// (repartidos entre todos los profesores, no 2 por cada uno).
+// El voto se guarda con el DNI del socio solo para limitar a 1 voto por mes POR PROFESOR
+// (no se comparte entre profesores, y no se acumula si un mes no se usa).
 // Ese DNI nunca se devuelve en ninguna respuesta: solo se usan promedio y cantidad total.
 function calcularResumenVotos(votos) {
     const total = votos.length;
@@ -715,20 +715,8 @@ function calcularResumenVotos(votos) {
     return { promedio: Math.round(promedio * 10) / 10, totalVotos: total };
 }
 
-// Cuenta cuantos votos emitio un socio en TODOS los profesores durante un mes/anio dado.
-async function contarVotosDelMes(dni, mes, anio) {
-    const keys = await client.keys('votos:profesor:*');
-    let total = 0;
-    for (const k of keys) {
-        const raw = await client.get(k);
-        const votos = raw ? JSON.parse(raw) : [];
-        total += votos.filter(v => v.dni === String(dni) && v.mes === mes && v.anio === anio).length;
-    }
-    return total;
-}
-
-// Lista de profesores con su promedio. Si se pasa ?dni=..., incluye cuantos votos le quedan
-// a ESE socio este mes en total (limite global de 2, no por profesor; no expone otros socios).
+// Lista de profesores con su promedio. Si se pasa ?dni=..., incluye si ESE socio ya calificó
+// a cada profesor este mes (no expone nada de otros socios).
 app.get('/api/profesores', async (req, res) => {
     try {
         await conectar();
@@ -738,17 +726,17 @@ app.get('/api/profesores', async (req, res) => {
         const mesActual = parseInt(ahora.toLocaleString('es-AR', { month: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
         const anioActual = parseInt(ahora.toLocaleString('es-AR', { year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
 
-        let votosRestantes = null;
-        if (dniConsulta) {
-            const votosDelSocioEsteMes = await contarVotosDelMes(dniConsulta, mesActual, anioActual);
-            votosRestantes = Math.max(0, 2 - votosDelSocioEsteMes);
-        }
-
         const profesores = await Promise.all(keys.map(async k => {
             const profesor = JSON.parse(await client.get(k));
             const rawVotos = await client.get(`votos:profesor:${profesor.id}`);
             const votos = rawVotos ? JSON.parse(rawVotos) : [];
             const resumen = calcularResumenVotos(votos);
+
+            let votosRestantes = null;
+            if (dniConsulta) {
+                const yaVotoEsteMes = votos.some(v => v.dni === dniConsulta && v.mes === mesActual && v.anio === anioActual);
+                votosRestantes = yaVotoEsteMes ? 0 : 1;
+            }
 
             return { id: profesor.id, nombre: profesor.nombre, ...resumen, ...(dniConsulta ? { votosRestantes } : {}) };
         }));
@@ -789,8 +777,8 @@ app.delete('/api/profesores/:id', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// REGISTRAR UN VOTO (1 a 5 estrellas) - maximo 2 votos por socio por mes calendario EN TOTAL
-// (no 2 por profesor: se cuentan juntos los votos a cualquier profesor).
+// REGISTRAR UN VOTO (1 a 5 estrellas) - maximo 1 voto por socio por profesor por mes calendario.
+// Si un mes no se usa, no se acumula para el siguiente.
 app.post('/api/profesores/:id/votar', async (req, res) => {
     try {
         await conectar();
@@ -802,23 +790,24 @@ app.post('/api/profesores/:id/votar', async (req, res) => {
         const existeProfesor = await client.exists(`profesor:${req.params.id}`);
         if (!existeProfesor) return res.status(404).json({ error: 'Profesor no encontrado' });
 
+        const key = `votos:profesor:${req.params.id}`;
+        const raw = await client.get(key);
+        const votos = raw ? JSON.parse(raw) : [];
+
         const ahora = new Date();
         const mes = parseInt(ahora.toLocaleString('es-AR', { month: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
         const anio = parseInt(ahora.toLocaleString('es-AR', { year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }), 10);
         const fecha = ahora.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
 
-        const votosEsteMes = await contarVotosDelMes(dni, mes, anio);
-        if (votosEsteMes >= 2) {
-            return res.status(429).json({ error: 'Ya usaste tus 2 votos de este mes.' });
+        const yaVotoEsteMes = votos.some(v => v.dni === String(dni) && v.mes === mes && v.anio === anio);
+        if (yaVotoEsteMes) {
+            return res.status(429).json({ error: 'Ya calificaste a este profesor este mes.' });
         }
 
-        const key = `votos:profesor:${req.params.id}`;
-        const raw = await client.get(key);
-        const votos = raw ? JSON.parse(raw) : [];
         votos.push({ id: Date.now(), dni: String(dni), estrellas: estrellasNum, mes, anio, fecha });
         await client.set(key, JSON.stringify(votos));
 
-        res.json({ success: true, ...calcularResumenVotos(votos), votosRestantes: Math.max(0, 2 - (votosEsteMes + 1)) });
+        res.json({ success: true, ...calcularResumenVotos(votos), votosRestantes: 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -95,7 +95,7 @@
         <!-- Calificar profesores -->
         <div class="socio-card">
             <p class="socio-card-label"><i class="fa-solid fa-star"></i> Calificá a tu profesor</p>
-            <p class="socio-voto-ayuda">Tu voto es anónimo. Tenés 2 votos por mes para repartir entre los profesores.</p>
+            <p class="socio-voto-ayuda">Tu voto es anónimo. Podés calificar a cada profesor una vez por mes.</p>
             <div id="profesores-lista"><div class="socio-empty">Cargando...</div></div>
         </div>
 
@@ -143,9 +143,37 @@
 
     </div>
 
+    <!-- Modal de confirmación (se reutiliza para confirmar acciones, ej. votar a un profesor) -->
+    <div class="socio-confirm-overlay" id="socio-confirm-overlay" hidden>
+        <div class="socio-confirm-box">
+            <div class="socio-confirm-icono" id="socio-confirm-icono">❓</div>
+            <h3 class="socio-confirm-titulo" id="socio-confirm-titulo"></h3>
+            <p class="socio-confirm-detalle" id="socio-confirm-detalle"></p>
+            <div class="socio-confirm-acciones">
+                <button class="socio-confirm-btn socio-confirm-cancelar" id="socio-confirm-cancelar">Cancelar</button>
+                <button class="socio-confirm-btn socio-confirm-ok" id="socio-confirm-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     (function () {
         const WHATSAPP_NUMERO = '5493532400146';
+
+        // Modal de confirmación genérico (devuelve true/false segun lo que elija el socio).
+        function confirmarSocio({ icono = '❓', titulo, detalle = '' }) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('socio-confirm-overlay');
+                document.getElementById('socio-confirm-icono').innerText = icono;
+                document.getElementById('socio-confirm-titulo').innerText = titulo;
+                document.getElementById('socio-confirm-detalle').innerText = detalle;
+                overlay.hidden = false;
+                const cerrar = val => { overlay.hidden = true; resolve(val); };
+                document.getElementById('socio-confirm-cancelar').onclick = () => cerrar(false);
+                document.getElementById('socio-confirm-ok').onclick = () => cerrar(true);
+                overlay.onclick = e => { if (e.target === overlay) cerrar(false); };
+            });
+        }
 
         // Las fechas "solo fecha" (YYYY-MM-DD, sin hora) se arman en horario local para que no
         // se corran un día hacia atrás si el navegador está en una zona horaria detrás de UTC.
@@ -308,11 +336,12 @@
                         <div class="socio-profesor-estrellas" data-restantes="${p.votosRestantes}">
                             ${[1,2,3,4,5].map(n => `<i class="fa-solid fa-star" data-valor="${n}"></i>`).join('')}
                         </div>
-                        <div class="socio-profesor-msg">${p.votosRestantes > 0 ? `Te quedan ${p.votosRestantes} voto${p.votosRestantes === 1 ? '' : 's'} este mes` : 'Ya usaste tus votos de este mes'}</div>
+                        <div class="socio-profesor-msg">${p.votosRestantes > 0 ? 'Podés calificarlo este mes' : 'Ya lo calificaste este mes'}</div>
                     </div>`).join('');
 
                 cont.querySelectorAll('.socio-profesor-item').forEach(item => {
                     const id = item.dataset.id;
+                    const nombreProfesor = item.querySelector('.socio-profesor-nombre').innerText;
                     const estrellasWrap = item.querySelector('.socio-profesor-estrellas');
                     const msg = item.querySelector('.socio-profesor-msg');
                     if (Number(estrellasWrap.dataset.restantes) <= 0) estrellasWrap.classList.add('agotado');
@@ -321,6 +350,14 @@
                         star.onclick = async () => {
                             if (Number(estrellasWrap.dataset.restantes) <= 0) return;
                             const valor = Number(star.dataset.valor);
+
+                            const confirmado = await confirmarSocio({
+                                icono: '⭐',
+                                titulo: `¿Calificar a ${nombreProfesor} con ${valor} estrella${valor === 1 ? '' : 's'}?`,
+                                detalle: 'Tu voto es anónimo y no se puede deshacer ni cambiar hasta el próximo mes.'
+                            });
+                            if (!confirmado) return;
+
                             const res = await fetch(`/api/profesores/${id}/votar`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -334,23 +371,9 @@
                             estrellasWrap.querySelectorAll('i').forEach(s => {
                                 s.classList.toggle('activa', Number(s.dataset.valor) <= valor);
                             });
-                            const restantes = resultado.votosRestantes;
-                            msg.innerText = restantes > 0
-                                ? `¡Gracias! Te quedan ${restantes} voto${restantes === 1 ? '' : 's'} este mes`
-                                : '¡Gracias por tu voto! Ya usaste tus votos de este mes';
-
-                            // El limite de 2 votos es por mes EN TOTAL, no por profesor:
-                            // actualizamos el contador en todas las tarjetas, no solo en esta.
-                            cont.querySelectorAll('.socio-profesor-item').forEach(otroItem => {
-                                const otraEstrellasWrap = otroItem.querySelector('.socio-profesor-estrellas');
-                                otraEstrellasWrap.dataset.restantes = restantes;
-                                otraEstrellasWrap.classList.toggle('agotado', restantes <= 0);
-                                if (otroItem !== item) {
-                                    otroItem.querySelector('.socio-profesor-msg').innerText = restantes > 0
-                                        ? `Te quedan ${restantes} voto${restantes === 1 ? '' : 's'} este mes`
-                                        : 'Ya usaste tus votos de este mes';
-                                }
-                            });
+                            estrellasWrap.dataset.restantes = 0;
+                            estrellasWrap.classList.add('agotado');
+                            msg.innerText = '¡Gracias por tu voto! Ya lo calificaste este mes';
                         };
                     });
                 });
