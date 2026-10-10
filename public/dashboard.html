@@ -199,6 +199,7 @@
                 <p class="dash-kpi-label">Entradas del período</p>
                 <p class="dash-kpi-value" id="gasto-kpi-entradas">—</p>
                 <p class="dash-kpi-delta dash-delta-ok">Mismo rango que la pestaña Entradas</p>
+                <div id="gasto-entradas-metodos" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
             </div>
             <div class="dash-kpi-card">
                 <div class="dash-kpi-top">
@@ -331,6 +332,22 @@
         return isNaN(n) ? 0 : n;
     }
 
+    // Muestra la apertura de Entradas por método de pago (Efectivo/Transferencia/QR),
+    // usando los mismos totales que calcula la pestaña Entradas (window._dashMetodoTotales).
+    function renderEntradasPorMetodo() {
+        const cont = document.getElementById('gasto-entradas-metodos');
+        if (!cont) return;
+        const datos = window._dashMetodoTotales;
+        if (!datos) { cont.innerHTML = ''; return; }
+        const { metodos, metodoColor, metodoTotales } = datos;
+        cont.innerHTML = metodos.map((m, i) => `
+            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);border-radius:20px;padding:4px 10px 4px 8px;font-size:.74rem">
+                <span style="width:8px;height:8px;border-radius:50%;background:${metodoColor[i]};flex-shrink:0"></span>
+                <span style="color:var(--text-faint)">${m}</span>
+                <b style="color:var(--text)">$${metodoTotales[i].toLocaleString('es-AR')}</b>
+            </span>`).join('');
+    }
+
     function renderGastos() {
         const { desde, hasta } = obtenerRangoFechas();
         const gastosFiltrados = gastosData.filter(g => {
@@ -369,6 +386,7 @@
         const totalEntradas = leerEntradasDelPeriodo();
         const balance = totalEntradas - totalGastos;
         document.getElementById('gasto-kpi-entradas').innerText = '$' + totalEntradas.toLocaleString('es-AR');
+        renderEntradasPorMetodo();
         document.getElementById('gasto-kpi-total').innerText = '$' + totalGastos.toLocaleString('es-AR');
         document.getElementById('gasto-kpi-cantidad').innerText =
             `${gastosFiltrados.length} gasto${gastosFiltrados.length === 1 ? '' : 's'} en el período`;

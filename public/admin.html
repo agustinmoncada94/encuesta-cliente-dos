@@ -1316,6 +1316,8 @@
                     pagosEnRango.filter(p => (p.metodo||'Efectivo') === met)
                             .reduce((s, p) => s + parseMonto(p.monto), 0)
                 );
+                // Expuesto para que la pestaña Gastos pueda mostrar las Entradas separadas por método.
+                window._dashMetodoTotales = { metodos, metodoColor, metodoTotales };
 
                 const ctxMetodos = document.getElementById('chart-metodos');
                 if (ctxMetodos) {
