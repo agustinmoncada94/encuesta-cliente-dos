@@ -42,7 +42,11 @@ body {
     text-align: center;
 }
 
-.socio-gate .socio-logo { width: 90px; margin-bottom: 18px; }
+.socio-gate .socio-logo {
+    width: min(300px, 78vw);
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 22px rgba(255, 29, 31, 0.35));
+}
 .socio-gate h1 { font-size: 1.3rem; margin: 0 0 6px; }
 .socio-gate p { color: var(--text-faint); font-size: 0.85rem; margin: 0 0 22px; }
 
