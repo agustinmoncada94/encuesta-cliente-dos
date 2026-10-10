@@ -160,7 +160,7 @@
             <div class="dash-chart-header">
                 <div>
                     <p class="dash-chart-title">Ingresos por método de pago</p>
-                    <p class="dash-chart-sub">Total del período seleccionado · Efectivo, Transferencia y QR</p>
+                    <p class="dash-chart-sub">Total del período seleccionado · Efectivo y Transferencia</p>
                 </div>
             </div>
             <div class="dash-chart-box"><canvas id="chart-metodos"></canvas></div>
@@ -332,7 +332,7 @@
         return isNaN(n) ? 0 : n;
     }
 
-    // Muestra la apertura de Entradas por método de pago (Efectivo/Transferencia/QR),
+    // Muestra la apertura de Entradas por método de pago (Efectivo/Transferencia),
     // usando los mismos totales que calcula la pestaña Entradas (window._dashMetodoTotales).
     function renderEntradasPorMetodo() {
         const cont = document.getElementById('gasto-entradas-metodos');

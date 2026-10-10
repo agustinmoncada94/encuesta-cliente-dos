@@ -687,7 +687,6 @@
                                 <select id="cm-metodo" class="hist-input">
                                     <option value="Efectivo">Efectivo</option>
                                     <option value="Transferencia">Transferencia</option>
-                                    <option value="QR">QR</option>
                                     ${opcionDebito}
                                 </select>
                             </label>
@@ -1310,8 +1309,8 @@
                 set('dash-mejor-plan', mejorPlan ? mejorPlan[0] : '—');
 
                 // ── Chart 5: Ingresos por método de pago (período seleccionado) ──
-                const metodos     = ['Efectivo', 'Transferencia', 'QR'];
-                const metodoColor = ['#84cc16', '#60a5fa', '#a78bfa'];
+                const metodos     = ['Efectivo', 'Transferencia'];
+                const metodoColor = ['#84cc16', '#60a5fa'];
                 const metodoTotales = metodos.map(met =>
                     pagosEnRango.filter(p => (p.metodo||'Efectivo') === met)
                             .reduce((s, p) => s + parseMonto(p.monto), 0)
