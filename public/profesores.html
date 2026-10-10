@@ -4,14 +4,14 @@
         <div>
             <h1 class="equip-titulo">Profesores</h1>
         </div>
-        <button class="eq-btn-primary" id="pf-btn-nuevo">+ Nuevo profesor</button>
+        <div style="display:flex;gap:10px">
+            <button class="eqv2-btn-ghost" id="pf-btn-reiniciar">🔄 Reiniciar votos</button>
+            <button class="eq-btn-primary" id="pf-btn-nuevo">+ Nuevo profesor</button>
+        </div>
     </div>
 
     <div class="eqv2-card">
         <div class="eqv2-card-title">Calificaciones de los socios</div>
-        <p style="font-size:.8rem;color:var(--text-faint);margin:-8px 0 16px">
-            Los votos son anónimos: nunca se muestra qué socio calificó a quién, solo el promedio.
-        </p>
         <div style="overflow-x:auto">
             <table class="eqv2-table">
                 <thead>
@@ -23,6 +23,27 @@
                     </tr>
                 </thead>
                 <tbody id="pf-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="eqv2-card">
+        <div class="eqv2-card-title">Historial de votos</div>
+        <p style="font-size:.8rem;color:var(--text-faint);margin:-8px 0 16px">
+            Visible solo para Admin. Muestra qué socio calificó a cada profesor y con cuántas estrellas.
+        </p>
+        <div style="overflow-x:auto">
+            <table class="eqv2-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Profesor</th>
+                        <th>Socio</th>
+                        <th>DNI</th>
+                        <th>Estrellas</th>
+                    </tr>
+                </thead>
+                <tbody id="pf-historial-body"></tbody>
             </table>
         </div>
     </div>
@@ -61,6 +82,25 @@
     async function cargarProfesores() {
         profesoresData = await fetch('/api/profesores').then(r => r.json()).catch(() => []);
         renderProfesores();
+    }
+
+    async function cargarHistorialVotos() {
+        const historial = await fetch('/api/profesores/votos/historial').then(r => r.json()).catch(() => []);
+        const tbody = document.getElementById('pf-historial-body');
+        if (!historial.length) {
+            tbody.innerHTML = `<tr><td colspan="5">
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">⭐</div><p>Todavía no hay votos registrados.</p></div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = historial.map(v => `
+            <tr>
+                <td>${v.fecha}</td>
+                <td><b>${v.profesorNombre}</b></td>
+                <td>${v.socioNombre || '—'}</td>
+                <td>${v.dni}</td>
+                <td>${'★'.repeat(v.estrellas)}${'☆'.repeat(5 - v.estrellas)}</td>
+            </tr>`).join('');
     }
 
     function renderProfesores() {
@@ -105,6 +145,21 @@
     document.getElementById('pf-btn-nuevo').onclick = () => {
         limpiarForm();
         abrirModal('➕ Nuevo profesor');
+    };
+
+    document.getElementById('pf-btn-reiniciar').onclick = async () => {
+        const ok = await confirmar({
+            icono: '🔄',
+            titulo: '¿Reiniciar todos los votos?',
+            detalle: 'Se borra el historial de calificaciones de <strong>todos</strong> los profesores (promedio y votos recibidos vuelven a 0). Los profesores en sí no se eliminan. Esta acción no se puede deshacer.',
+            labelOk: 'Sí, reiniciar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+        await fetch('/api/profesores/votos/reiniciar', { method: 'DELETE' });
+        await cargarProfesores();
+        await cargarHistorialVotos();
     };
 
     document.getElementById('pf-modal-cancelar').onclick = cerrarModal;
@@ -156,5 +211,6 @@
     };
 
     cargarProfesores();
+    cargarHistorialVotos();
 })();
 </script>

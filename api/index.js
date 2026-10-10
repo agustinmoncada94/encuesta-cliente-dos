@@ -706,9 +706,11 @@ app.delete('/api/gastos/:id', async (req, res) => {
 });
 
 // PROFESORES Y VOTACION (1 a 5 estrellas)
-// El voto se guarda con el DNI del socio solo para limitar a 1 voto por mes POR PROFESOR
+// El voto se guarda con el DNI del socio para limitar a 1 voto por mes POR PROFESOR
 // (no se comparte entre profesores, y no se acumula si un mes no se usa).
-// Ese DNI nunca se devuelve en ninguna respuesta: solo se usan promedio y cantidad total.
+// /api/profesores (publica, la usa el Portal del Socio) solo devuelve promedio y cantidad
+// total: ahi NO se expone quien voto. La identidad del socio solo se revela en
+// /api/profesores/votos/historial, pensado para uso interno del Admin.
 function calcularResumenVotos(votos) {
     const total = votos.length;
     const promedio = total ? votos.reduce((s, v) => s + v.estrellas, 0) / total : 0;
@@ -808,6 +810,46 @@ app.post('/api/profesores/:id/votar', async (req, res) => {
         await client.set(key, JSON.stringify(votos));
 
         res.json({ success: true, ...calcularResumenVotos(votos), votosRestantes: 0 });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// HISTORIAL DE VOTOS (uso interno del Admin) - muestra quien voto a cada profesor.
+// Pensado para la pestaña Profesores del panel; el acceso a esa pestaña ya esta
+// restringido a Admin (Profesor no puede entrar), igual que el resto de Dashboard KPI.
+app.get('/api/profesores/votos/historial', async (req, res) => {
+    try {
+        await conectar();
+        const profesorKeys = await client.keys('profesor:*');
+        const historial = [];
+        for (const pk of profesorKeys) {
+            const profesor = JSON.parse(await client.get(pk));
+            const rawVotos = await client.get(`votos:profesor:${profesor.id}`);
+            const votos = rawVotos ? JSON.parse(rawVotos) : [];
+            for (const v of votos) {
+                const rawSocio = await client.get(`socio:${v.dni}`);
+                const socio = rawSocio ? JSON.parse(rawSocio) : null;
+                historial.push({
+                    id: v.id,
+                    profesorNombre: profesor.nombre,
+                    dni: v.dni,
+                    socioNombre: socio ? socio.nombre : null,
+                    estrellas: v.estrellas,
+                    fecha: v.fecha
+                });
+            }
+        }
+        historial.sort((a, b) => b.id - a.id); // mas reciente primero
+        res.json(historial);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// REINICIAR TODOS LOS VOTOS (borra el historial de calificaciones, no los profesores en si).
+app.delete('/api/profesores/votos/reiniciar', async (req, res) => {
+    try {
+        await conectar();
+        const keys = await client.keys('votos:profesor:*');
+        for (const k of keys) await client.del(k);
+        res.json({ success: true, profesoresReiniciados: keys.length });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
