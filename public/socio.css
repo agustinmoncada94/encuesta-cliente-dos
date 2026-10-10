@@ -1,0 +1,466 @@
+/* socio.css — Portal del socio, mobile-first */
+:root {
+    --bg: #0a0a0a;
+    --panel: rgba(18, 18, 18, 0.82);
+    --panel-strong: #161616;
+    --surface: #1a1a1a;
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --text: #f5f7fb;
+    --text-soft: #b3b3b3;
+    --text-faint: #7a7a7a;
+    --primary: #ff1d1f;
+    --primary-2: #b81516;
+    --success: #35e08a;
+    --warning: #ffb347;
+    --danger: #f43f5e;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+body {
+    padding: 18px 14px 40px;
+}
+
+.socio-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+/* ── Gate de acceso (reemplaza por login real mas adelante) ── */
+.socio-gate {
+    max-width: 380px;
+    margin: 18vh auto 0;
+    text-align: center;
+}
+
+.socio-gate .socio-logo {
+    width: min(300px, 78vw);
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 22px rgba(255, 29, 31, 0.35));
+}
+.socio-gate h1 { font-size: 1.3rem; margin: 0 0 6px; }
+.socio-gate p { color: var(--text-faint); font-size: 0.85rem; margin: 0 0 22px; }
+
+.socio-gate input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 1rem;
+    text-align: center;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.socio-gate input:focus { outline: none; border-color: rgba(255,29,31,0.45); }
+
+.socio-gate button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.socio-gate-error {
+    display: none;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(244,63,94,0.1);
+    border: 1px solid rgba(244,63,94,0.3);
+    border-radius: 10px;
+    color: var(--danger);
+    font-size: 0.82rem;
+}
+
+.socio-gate-volver {
+    width: auto !important;
+    background: none !important;
+    color: var(--text-faint) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    padding: 10px !important;
+    margin-top: 10px !important;
+}
+
+/* ── Header ── */
+.socio-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.socio-avatar {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,29,31,0.22), rgba(255,29,31,0.06));
+    border: 1px solid rgba(255,29,31,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--primary);
+}
+
+.socio-header-kicker {
+    margin: 0 0 2px;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.socio-header h1 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.socio-logout {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 8px;
+}
+
+/* ── Tarjetas ── */
+.socio-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(10px);
+}
+
+.socio-card-label {
+    margin: 0 0 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* Hero: dias restantes */
+.socio-hero {
+    text-align: center;
+    padding: 26px 20px;
+}
+
+.socio-hero-dias {
+    font-size: 3.2rem;
+    font-weight: 900;
+    line-height: 1;
+    margin: 0;
+}
+
+.socio-hero-dias small { font-size: 1rem; font-weight: 700; display: block; margin-top: 6px; color: var(--text-soft); }
+
+.socio-hero-ok     .socio-hero-dias { color: var(--success); }
+.socio-hero-pronto .socio-hero-dias { color: var(--warning); }
+.socio-hero-vencido .socio-hero-dias { color: var(--danger); }
+.socio-hero-suspendido .socio-hero-dias { color: var(--text-faint); }
+
+/* Estado de membresía: badge grande y claro arriba del todo */
+.socio-estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+}
+
+.socio-estado-badge i { font-size: 0.5rem; }
+
+.socio-estado-ok         { background: rgba(53,224,138,0.12);  color: var(--success); border: 1px solid rgba(53,224,138,0.3); }
+.socio-estado-pronto     { background: rgba(255,179,71,0.12);  color: var(--warning); border: 1px solid rgba(255,179,71,0.3); }
+.socio-estado-vencido    { background: rgba(244,63,94,0.12);   color: var(--danger);  border: 1px solid rgba(244,63,94,0.3); }
+.socio-estado-suspendido { background: rgba(255,255,255,0.06); color: var(--text-soft); border: 1px solid var(--panel-border); }
+
+.socio-hero-plan {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+}
+
+.socio-hero-plan b { color: var(--text); }
+
+/* Próximo vencimiento */
+.socio-venc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.socio-venc-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 8px;
+}
+
+.socio-venc-item i { color: var(--primary); font-size: 1rem; }
+.socio-venc-item span { display: block; font-size: 0.66rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.socio-venc-item b { font-size: 0.82rem; color: var(--text); }
+
+.socio-btn-whatsapp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-decoration: none;
+    background: #25D366;
+    color: #06220f;
+}
+
+.socio-btn-whatsapp i { font-size: 1.05rem; }
+
+/* Resumen de asistencias */
+.socio-resumen-numero {
+    font-size: 2.2rem;
+    font-weight: 900;
+    margin: 0 0 8px;
+    color: var(--text);
+}
+
+.socio-resumen-numero span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-faint);
+    margin-left: 8px;
+}
+
+.socio-resumen-ultima {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-faint);
+}
+
+.socio-resumen-ultima b { color: var(--text-soft); font-weight: 700; }
+
+/* Calificar profesores */
+.socio-voto-ayuda {
+    margin: -4px 0 16px;
+    font-size: 0.78rem;
+    color: var(--text-faint);
+}
+
+.socio-profesor-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.socio-profesor-item:last-child { border-bottom: none; }
+
+.socio-profesor-nombre {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.socio-profesor-estrellas {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.socio-profesor-estrellas i {
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.socio-profesor-estrellas i.activa { color: #f59e0b; }
+.socio-profesor-estrellas.agotado i { cursor: not-allowed; }
+.socio-profesor-estrellas.agotado i.activa { color: rgba(245,158,11,0.4); }
+
+.socio-profesor-msg {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
+
+/* Fila de datos rapidos */
+.socio-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.86rem;
+}
+
+.socio-info-row:last-child { border-bottom: none; }
+.socio-info-row span { color: var(--text-faint); }
+.socio-info-row b { color: var(--text); text-align: right; }
+
+/* Asistencia */
+/* Calendario del mes */
+.socio-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -6px 0 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.socio-cal-nav {
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.socio-cal-nav:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.socio-cal-dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.socio-cal-dow span {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-faint);
+}
+
+.socio-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.socio-cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+
+.socio-cal-day.vacio { background: transparent; }
+.socio-cal-day.futuro { color: var(--text-faint); background: rgba(255,255,255,0.02); }
+.socio-cal-day.si { background: rgba(53,224,138,0.18); color: var(--success); font-weight: 800; }
+.socio-cal-day.hoy { box-shadow: inset 0 0 0 2px var(--primary); color: var(--text); }
+.socio-cal-day.hoy.si { background: rgba(53,224,138,0.35); color: var(--success); }
+
+.socio-cal-leyenda {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
+
+.socio-cal-leyenda span { display: flex; align-items: center; gap: 6px; }
+
+.socio-cal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    background: rgba(53,224,138,0.18);
+}
+
+.socio-cal-dot.si { background: var(--success); }
+.socio-cal-dot.hoy { background: transparent; box-shadow: inset 0 0 0 2px var(--primary); }
+
+/* Historial de pagos */
+.socio-pago-item {
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.socio-pago-item:last-child { border-bottom: none; }
+
+.socio-pago-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.socio-pago-concepto { font-weight: 700; font-size: 0.88rem; }
+.socio-pago-fecha { font-size: 0.75rem; color: var(--text-faint); margin-top: 2px; }
+.socio-pago-monto { font-weight: 800; font-size: 0.95rem; white-space: nowrap; }
+
+.socio-pago-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.socio-mini-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-soft);
+    border: 1px solid var(--panel-border);
+}
+
+.socio-mini-pill.ok { background: rgba(53,224,138,0.1); color: var(--success); border-color: rgba(53,224,138,0.25); }
+
+.socio-empty {
+    text-align: center;
+    padding: 24px 10px;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+}
+
+[hidden] { display: none !important; }

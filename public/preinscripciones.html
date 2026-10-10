@@ -1,0 +1,166 @@
+<div class="card">
+    <div class="sl-header">
+        <h1 class="sl-title">Preinscripciones pendientes</h1>
+    </div>
+
+    <div class="sl-summary">
+        <div class="sl-badge">
+            <i class="fas fa-user-clock"></i>
+            Pendientes: <b id="pend-contador">0</b>
+        </div>
+    </div>
+
+    <div id="pend-vacio" class="pend-empty" hidden>
+        <i class="fas fa-circle-check"></i>
+        <p>No hay preinscripciones pendientes por revisar.</p>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="tabla-socios" id="pend-tabla" style="min-width: 820px;">
+            <thead>
+                <tr>
+                    <th style="width: 24%;">Solicitante</th>
+                    <th style="width: 24%;">Contacto</th>
+                    <th style="width: 16%;">Plan</th>
+                    <th style="width: 16%;">Solicitado</th>
+                    <th style="width: 10%;">Comprobante</th>
+                    <th style="width: 20%; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="pend-lista">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:24px">Cargando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(function () {
+    let pendientesData = [];
+
+    async function cargarPendientes() {
+        const tbody = document.getElementById('pend-lista');
+        const vacio = document.getElementById('pend-vacio');
+        const tabla = document.getElementById('pend-tabla');
+
+        try {
+            const r = await fetch('/api/preinscripciones/todas');
+            pendientesData = await r.json();
+
+            document.getElementById('pend-contador').textContent = pendientesData.length;
+            if (window.actualizarBadgePreinscripciones) window.actualizarBadgePreinscripciones(pendientesData.length);
+
+            if (!pendientesData.length) {
+                tabla.hidden = true;
+                vacio.hidden = false;
+                return;
+            }
+            tabla.hidden = false;
+            vacio.hidden = true;
+
+            tbody.innerHTML = pendientesData.map(p => {
+                const fecha = p.fechaSolicitud
+                    ? new Date(p.fechaSolicitud).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '—';
+                const monto = p.primerPago && p.primerPago.monto ? `$${Number(p.primerPago.monto).toLocaleString('es-AR')}` : '—';
+                const nombre = (p.nombre || '').toUpperCase();
+                return `
+                <tr>
+                    <td>
+                        <div class="td-socio">
+                            <span class="nombre-socio">${nombre}</span>
+                            <span style="color:var(--text-faint);font-size:.78rem">DNI ${p.dni || '—'}</span>
+                        </div>
+                    </td>
+                    <td style="font-size:.85rem;color:var(--text-soft)">
+                        ${p.email || '—'}<br>${p.telefono || '—'}
+                    </td>
+                    <td>${p.plan || '—'}<br><span style="color:var(--text-faint);font-size:.78rem">${monto}</span></td>
+                    <td style="font-size:.8rem;color:var(--text-faint)">${fecha}</td>
+                    <td>
+                        <button class="det-btn-volver" style="padding:7px 12px;font-size:.78rem" onclick="verComprobantePendiente('${p.dni}')">
+                            <i class="fas fa-image"></i> Ver
+                        </button>
+                    </td>
+                    <td style="text-align:center;white-space:nowrap">
+                        <button class="eq-btn-primary" style="padding:8px 14px;font-size:.8rem" onclick="aceptarPreinscripcion('${p.dni}')">Aceptar</button>
+                        <button class="pend-btn-reject" onclick="rechazarPreinscripcion('${p.dni}')">Rechazar</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:24px">Error al cargar: ${e.message}</td></tr>`;
+        }
+    }
+
+    window.verComprobantePendiente = function (dni) {
+        const p = pendientesData.find(x => x.dni === dni);
+        const dataUrl = p && p.comprobante && p.comprobante.dataUrl;
+        if (!dataUrl) { alert('No hay comprobante adjunto.'); return; }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-box" style="max-width:min(92vw, 900px);width:100%;text-align:center">
+                <h3 class="modal-titulo" style="margin-bottom:14px">Comprobante — ${(p.nombre || '').toUpperCase()}</h3>
+                <img src="${dataUrl}" alt="Comprobante adjuntado" style="max-width:100%;max-height:80vh;border-radius:12px;border:1px solid var(--panel-border);cursor:zoom-in">
+                <div style="display:flex;gap:10px;margin-top:16px">
+                    <a href="${dataUrl}" download="comprobante_${p.dni || 'socio'}.jpg" class="det-btn-volver" style="flex:1;text-decoration:none;display:inline-block">
+                        <i class="fas fa-download"></i> Descargar
+                    </a>
+                    <button class="det-btn-volver" style="flex:1">Cerrar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const cerrar = () => document.body.removeChild(overlay);
+        overlay.querySelector('button').onclick = cerrar;
+        overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(); });
+    };
+
+    window.aceptarPreinscripcion = async function (dni) {
+        const p = pendientesData.find(x => x.dni === dni);
+        const ok = await confirmar({
+            icono: '✅',
+            titulo: '¿Aceptar preinscripción?',
+            detalle: `Se va a crear el socio <strong>${(p && p.nombre || '').toUpperCase()}</strong> (DNI ${dni}) como <strong>Activo</strong>, con el pago ya registrado.`,
+            labelOk: 'Sí, aceptar'
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/api/preinscripciones/${dni}/aceptar`, { method: 'POST' });
+            const resultado = await res.json();
+            if (!res.ok || !resultado.success) {
+                alert('Error: ' + (resultado.error || 'No se pudo aceptar la preinscripción.'));
+                return;
+            }
+            cargarPendientes();
+        } catch (e) {
+            alert('Error de conexión: ' + e.message);
+        }
+    };
+
+    window.rechazarPreinscripcion = async function (dni) {
+        const p = pendientesData.find(x => x.dni === dni);
+        const ok = await confirmar({
+            icono: '🗑️',
+            titulo: 'Rechazar preinscripción',
+            detalle: `Se va a descartar la solicitud de <strong>${(p && p.nombre || '').toUpperCase()}</strong> (DNI ${dni}). Esta acción no se puede deshacer.`,
+            labelOk: 'Sí, rechazar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/api/preinscripciones/${dni}`, { method: 'DELETE' });
+            if (!res.ok) { alert('No se pudo rechazar la preinscripción.'); return; }
+            cargarPendientes();
+        } catch (e) {
+            alert('Error de conexión: ' + e.message);
+        }
+    };
+
+    cargarPendientes();
+})();
+</script>

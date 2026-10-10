@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DECLON Admin - Panel de Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script>
+        // Verificar sesión antes de cargar nada
+        (function () {
+            const s = JSON.parse(localStorage.getItem('gym_session') || 'null');
+            if (!s || Date.now() > s.expiry) {
+                localStorage.removeItem('gym_session');
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrap">
+                    <img src="img/logo.png" alt="DECLON" class="sidebar-logo" />
+                </div>
+                <div>
+                    <p class="sidebar-kicker">Panel administrativo</p>
+                    <h1>DECLON ADMIN</h1>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-link active" onclick="switchTab('socios_lista')">
+                    <i class="fas fa-list"></i>
+                    <span>Ver Socios</span>
+                </button>
+
+                <button class="nav-link" onclick="switchTab('socios_registro')">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Registrar Socio</span>
+                </button>
+
+                <button class="nav-link" id="nav-planes" onclick="switchTab('planes')">
+                    <i class="fas fa-tags"></i>
+                    <span>Planes</span>
+                </button>
+
+                <button class="nav-link" id="nav-profesores" onclick="switchTab('profesores')">
+                    <i class="fas fa-star"></i>
+                    <span>Profesores</span>
+                </button>
+
+                <button class="nav-link" id="nav-preinscripciones" onclick="switchTab('preinscripciones')">
+                    <i class="fas fa-user-clock"></i>
+                    <span>Preinscripciones</span>
+                    <span class="nav-badge" id="nav-preinscripciones-badge" hidden>0</span>
+                </button>
+
+                <button class="nav-link" id="nav-equipos" onclick="switchTab('equipos')">
+                    <i class="fas fa-dumbbell"></i>
+                    <span>Equipamiento</span>
+                </button>
+
+                <button class="nav-link" id="nav-dashboard" onclick="switchTab('dashboard')">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard KPI</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+                    <div class="status-box" style="margin-bottom:0;white-space:nowrap;flex-shrink:0">
+                        <span class="status-dot"></span>
+                        <span>Sistema activo</span>
+                    </div>
+                    <span id="rol-badge" style="font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap"></span>
+                </div>
+                <button onclick="cerrarSesion()" style="margin-top:10px;width:100%;padding:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;color:#f87171;font-weight:700;font-size:0.8rem;cursor:pointer;letter-spacing:1px">
+                    🔒 CERRAR SESIÓN
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div>
+                    <h2 id="topbar-titulo">Socios</h2>
+                </div>
+                <div class="topbar-actions">
+                    <button class="ghost-btn">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="ghost-btn">
+                        <i class="fas fa-user-shield"></i>
+                    </button>
+                </div>
+            </header>
+
+            <section id="view-container"></section>
+        </main>
+    </div>
+
+    <script>
+        let sociosGlobal = [];
+        const sociosMap = new Map();
+
+        // ── Rol del usuario ──────────────────────────────────────────────────
+        const _session = JSON.parse(localStorage.getItem('gym_session') || '{}');
+        const ROL      = (_session.role || 'admin').toLowerCase();
+        const esAdmin  = ROL === 'admin';
+
+        // Aplicar restricciones de sidebar según rol
+        (function aplicarRol() {
+            // Badge de rol en sidebar
+            const rolBadge = document.getElementById('rol-badge');
+            if (rolBadge) {
+                rolBadge.textContent = esAdmin ? 'Admin' : 'Profesor';
+                rolBadge.style.background = esAdmin ? 'rgba(255,29,31,0.12)' : 'rgba(96,165,250,0.12)';
+                rolBadge.style.color      = esAdmin ? '#ff1d1f' : '#60a5fa';
+                rolBadge.style.border     = esAdmin ? '1px solid rgba(255,29,31,0.25)' : '1px solid rgba(96,165,250,0.25)';
+            }
+            if (!esAdmin) {
+                // Ocultar tabs que Profesor no puede ver
+                ['nav-dashboard', 'nav-equipos', 'nav-planes', 'nav-profesores', 'nav-preinscripciones'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+            }
+        })();
+
+        // ── Carga de tabs generales ──────────────────────────────────────────
+        async function verDetalle(dni) {
+            const container = document.getElementById('view-container');
+            const html = await (await fetch('socio_detalle.html')).text();
+            container.innerHTML = html;
+
+            // Ocultar acciones de admin para Profesor
+            if (!esAdmin) {
+                const btnBaja = document.getElementById('det-btn-eliminar');
+                if (btnBaja) btnBaja.style.display = 'none';
+            }
+
+            const s = sociosMap.get(dni);
+            if (!s) return;
+
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+            const desde = new Date(s.fechaInicio || s.fechaPago);
+            const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+            const diffDays = Math.ceil((hasta - hoy) / (1000 * 60 * 60 * 24));
+
+            let estadoTexto = 'AL DÍA', estadoColor = 'rgba(53,224,138,0.08)', estadoBorder = 'rgba(53,224,138,0.25)';
+            if (s.estado === 'Suspendido')                         { estadoTexto = 'SUSPENDIDO'; estadoColor = 'rgba(255,92,92,0.08)';  estadoBorder = 'rgba(255,92,92,0.25)'; }
+            else if (hoy > hasta)                                  { estadoTexto = 'VENCIDO';    estadoColor = 'rgba(255,92,92,0.08)';  estadoBorder = 'rgba(255,92,92,0.25)'; }
+            else if (s.plan === 'Semana de Prueba' && diffDays>23) { estadoTexto = 'PRUEBA';     estadoColor = 'rgba(255,179,71,0.08)'; estadoBorder = 'rgba(255,179,71,0.25)'; }
+            else if (diffDays <= 4)                                { estadoTexto = 'POR VENCER'; estadoColor = 'rgba(255,179,71,0.08)'; estadoBorder = 'rgba(255,179,71,0.25)'; }
+
+            const iniciales = s.nombre.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+            const fmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—';
+
+            document.getElementById('det-avatar').innerText        = iniciales;
+            document.getElementById('det-nombre').innerText        = s.nombre.toUpperCase();
+            document.getElementById('det-dni').innerText           = s.dni;
+            document.getElementById('det-desde').innerText         = fmt(s.fechaInicio || s.fechaPago);
+            document.getElementById('det-estado-texto').innerText  = estadoTexto;
+            document.getElementById('det-vencimiento').innerText   = fmt(hasta);
+            document.getElementById('det-dias').innerText          = diffDays > 0 ? diffDays + ' días' : 'Vencido';
+            document.getElementById('det-plan').innerText          = s.plan || 'Musculación';
+            document.getElementById('det-info-nombre').innerText   = s.nombre;
+            document.getElementById('det-info-dni').innerText      = s.dni;
+            document.getElementById('det-info-nac').innerText      = s.nacimiento ? fmt(s.nacimiento) : '—';
+            document.getElementById('det-info-tel').innerText      = s.telefono || '—';
+            document.getElementById('det-info-plan').innerText     = s.plan || 'Musculación';
+            document.getElementById('det-info-alta').innerText     = fmt(s.fechaInicio || s.fechaPago);
+            document.getElementById('det-info-vence').innerText    = fmt(hasta);
+            document.getElementById('det-info-estado').innerText   = estadoTexto;
+
+            // Color dinámico del badge de estado
+            const badgeEstado = document.getElementById('det-badge-estado');
+            badgeEstado.style.background    = estadoColor;
+            badgeEstado.style.borderColor   = estadoBorder;
+
+            // Acciones rápidas
+            document.getElementById('det-btn-cobrar').onclick  = async () => { await cobrarMes(dni); verDetalle(dni); };
+            document.getElementById('det-btn-editar').onclick  = () => prepararEdicion(s);
+            document.getElementById('det-btn-reset-pin').onclick = async () => {
+                const ok = await confirmar({
+                    icono: '🔑',
+                    titulo: '¿Resetear la contraseña del Portal?',
+                    detalle: `<strong>${s.nombre.toUpperCase()}</strong> va a tener que crear una contraseña nueva la próxima vez que entre al Portal del Socio con su DNI.`,
+                    labelOk: 'Sí, resetear',
+                    colorOk: '#60a5fa',
+                    colorOkText: '#000'
+                });
+                if (!ok) return;
+                await fetch(`/api/socios/${dni}/pin`, { method: 'DELETE' });
+                alert('Listo, la próxima vez que entre va a poder crear una contraseña nueva.');
+            };
+            document.getElementById('det-btn-eliminar').onclick = () => { borrarSocio(dni); };
+
+            // ── Historial de pagos ────────────────────────────────────────
+            let pagosData = [];
+
+            async function cargarPagos() {
+                const res = await fetch(`/api/socios/${dni}/pagos`);
+                pagosData = await res.json();
+                renderPagos();
+            }
+
+            function renderPagos() {
+                const buscar  = document.getElementById('hist-buscar').value.toLowerCase();
+                const estado  = document.getElementById('hist-estado').value;
+                const metodo  = document.getElementById('hist-metodo').value;
+                const orden   = document.getElementById('hist-orden').value;
+                const body    = document.getElementById('historial-body');
+
+                let lista = [...pagosData];
+                if (buscar) lista = lista.filter(p => p.concepto.toLowerCase().includes(buscar) || p.monto.includes(buscar));
+                if (estado) lista = lista.filter(p => p.estado === estado);
+                if (metodo) lista = lista.filter(p => p.metodo === metodo);
+                if (orden === 'antiguos') lista.reverse();
+
+                if (!lista.length) {
+                    body.innerHTML = '<div class="historial-empty">Sin movimientos registrados</div>';
+                    return;
+                }
+
+                body.innerHTML = lista.map(p => {
+                    const cls = p.estado === 'Pagado' ? 'pill-pagado' : 'pill-pendiente';
+                    return `
+                    <div class="historial-row">
+                        <span>${p.fecha}</span>
+                        <span>${p.concepto}${p.observacion ? `<br><small style="color:var(--text-faint);font-weight:400">${p.observacion}</small>` : ''}</span>
+                        <span class="historial-monto">${p.monto || '—'}</span>
+                        <span>${p.metodo}</span>
+                        <span><span class="hist-pill ${cls}">${p.estado}</span></span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Filtros en tiempo real
+            ['hist-buscar','hist-estado','hist-metodo','hist-orden'].forEach(id => {
+                document.getElementById(id).addEventListener('input', renderPagos);
+                document.getElementById(id).addEventListener('change', renderPagos);
+            });
+
+            // Modal registrar pago
+            const modal = document.getElementById('modal-pago');
+            document.getElementById('det-btn-nuevo-pago').onclick = () => modal.style.display = 'flex';
+            document.getElementById('mp-cancelar').onclick        = () => modal.style.display = 'none';
+            document.getElementById('mp-guardar').onclick = async () => {
+                const body = {
+                    concepto: document.getElementById('mp-concepto').value || 'Mensual',
+                    monto:    document.getElementById('mp-monto').value,
+                    metodo:   document.getElementById('mp-metodo').value,
+                    estado:   document.getElementById('mp-estado').value,
+                    observacion: document.getElementById('mp-observacion').value.trim()
+                };
+                await fetch(`/api/socios/${dni}/pagos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                modal.style.display = 'none';
+                await cargarPagos();
+            };
+
+            // Exportar CSV
+            document.getElementById('det-btn-exportar').onclick = () => {
+                const csv = ['Fecha,Concepto,Monto,Método,Estado,Observación',
+                    ...pagosData.map(p => `${p.fecha},${p.concepto},${p.monto},${p.metodo},${p.estado},"${(p.observacion || '').replace(/"/g,'""').replace(/\n/g,' ')}"`)
+                ].join('\n');
+                const a = document.createElement('a');
+                a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+                a.download = `pagos_${s.nombre.replace(/ /g,'_')}.csv`;
+                a.click();
+            };
+
+            cargarPagos();
+        }
+
+        async function switchTab(tabName) {
+            // Bloquear acceso a tabs restringidos para Profesor
+            if (!esAdmin && ['dashboard', 'equipos', 'planes', 'profesores', 'preinscripciones'].includes(tabName)) {
+                await confirmar({
+                    icono: '🔒',
+                    titulo: 'Acceso restringido',
+                    detalle: 'Tu rol de <strong>Profesor</strong> no tiene permiso para acceder a esta sección.',
+                    labelOk: 'Entendido',
+                    colorOk: '#60a5fa',
+                    colorOkText: '#000'
+                });
+                return;
+            }
+            const container = document.getElementById('view-container');
+            try {
+                const html = await (await fetch(`${tabName}.html`)).text();
+                container.innerHTML = html;
+
+                const titulosTab = {
+                    socios_lista: 'Socios',
+                    socios_registro: 'Registrar Socio',
+                    planes: 'Planes',
+                    profesores: 'Profesores',
+                    preinscripciones: 'Preinscripciones',
+                    equipos: 'Equipamiento',
+                    dashboard: 'Dashboard KPI'
+                };
+                const topbarTitulo = document.getElementById('topbar-titulo');
+                if (topbarTitulo) topbarTitulo.innerText = titulosTab[tabName] || 'Panel de Control';
+
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('onclick').includes(tabName)) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Re-ejecutar scripts inline del HTML cargado (innerHTML no los ejecuta automáticamente)
+                container.querySelectorAll('script').forEach(oldScript => {
+                    const s = document.createElement('script');
+                    s.textContent = oldScript.textContent;
+                    document.body.appendChild(s);
+                    document.body.removeChild(s);
+                });
+
+                if (tabName === 'socios_lista') await cargarSocios();
+                if (tabName === 'dashboard')    cargarDashboardKPIs();
+
+                if (tabName === 'socios_registro') {
+                    // Modo REGISTRO NUEVO
+                    await poblarSelectPlanes();
+                    const form = document.getElementById('registroForm');
+                    if (form) {
+                        form.addEventListener('submit', async function (e) {
+                            e.preventDefault();
+                            const datos = leerFormulario();
+                            const ok = await confirmar({
+                                icono: '✅',
+                                titulo: '¿Registrar nuevo socio?',
+                                detalle: `Se creará el perfil de <strong>${(datos.nombre||'').toUpperCase()}</strong> con DNI ${datos.dni||'—'}.`,
+                                labelOk: 'Sí, registrar'
+                            });
+                            if (!ok) return;
+                            if (!datos.fechaInicio) datos.fechaInicio = new Date().toISOString();
+                            await guardarSocio('POST', '/api/registrar', datos);
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ── Edición de un socio existente ────────────────────────────────────
+        async function prepararEdicion(socio) {
+            const container = document.getElementById('view-container');
+            try {
+                const html = await (await fetch('socios_registro.html')).text();
+                container.innerHTML = html;
+
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('onclick').includes('socios_registro')) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Rellenar campos
+                const campos = {
+                    nombre: socio.nombre,
+                    dni: socio.dni,
+                    telefono: socio.telefono,
+                    nacimiento: socio.nacimiento ? socio.nacimiento.split('T')[0] : '',
+                    estado: socio.estado,
+                    fechaInicio: (socio.fechaInicio || socio.fechaPago || '').split('T')[0]
+                };
+                for (const id in campos) {
+                    const el = document.getElementById(id);
+                    if (el) el.value = campos[id];
+                }
+                await poblarSelectPlanes(socio.plan);
+
+                // DNI no editable y nacimiento no requerido en edición
+                const inputDni = document.getElementById('dni');
+                if (inputDni) inputDni.readOnly = true;
+                const inputNac = document.getElementById('nacimiento');
+                if (inputNac) inputNac.removeAttribute('required');
+
+                // Dejar solo "Suspendido" en el select de estado, sin preseleccionar
+                const selectEstado = document.getElementById('estado');
+                if (selectEstado) {
+                    selectEstado.innerHTML = `
+                        <option value="" disabled selected>-- Seleccionar estado --</option>
+                        <option value="Suspendido">Suspendido (Acceso denegado)</option>`;
+                }
+
+                const titulo = document.querySelector('.card h1');
+                if (titulo) titulo.innerText = 'EDITAR SOCIO';
+
+                // Botón type="button" → el form submit NUNCA se dispara
+                const dniOriginal = socio.dni;
+                const btn = document.querySelector('#registroForm button[type="submit"]');
+                if (btn) {
+                    btn.type = 'button';
+                    btn.innerText = 'GUARDAR CAMBIOS';
+                    btn.classList.add('btn-edit-mode');
+                    btn.onclick = async () => {
+                        const datos = leerFormulario();
+                        datos.dni = dniOriginal;
+                        await guardarSocio('PUT', `/api/socios/${dniOriginal}`, datos);
+                    };
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+
+        // Carga el <select id="plan"> con los planes cargados en /api/planes.
+        // Si valorActual no está entre los planes vigentes (ej. un plan que ya se borró),
+        // se agrega igual como opción para no perder el dato del socio.
+        async function poblarSelectPlanes(valorActual = '') {
+            const select = document.getElementById('plan');
+            if (!select) return;
+
+            let planes = [];
+            try { planes = await (await fetch('/api/planes')).json(); } catch (e) { planes = []; }
+
+            const opcionesPlanes = planes.map(p =>
+                `<option value="${p.nombre}">${p.nombre} — $${Number(p.monto).toLocaleString('es-AR')} · ${p.dias} días</option>`
+            ).join('');
+
+            select.innerHTML = `<option value="" disabled ${valorActual ? '' : 'selected'}>-- Seleccionar plan --</option>${opcionesPlanes}`;
+
+            if (!planes.length) {
+                select.insertAdjacentHTML('beforeend', `<option value="" disabled>No hay planes cargados — agregalos en "Planes"</option>`);
+            }
+
+            if (valorActual) {
+                const existe = planes.some(p => p.nombre === valorActual);
+                if (!existe) {
+                    select.insertAdjacentHTML('beforeend', `<option value="${valorActual}">${valorActual} (plan anterior)</option>`);
+                }
+                select.value = valorActual;
+            }
+        }
+
+        function leerFormulario() {
+            const montoRaw = (document.getElementById('pago-monto')?.value || '').trim();
+            const montoNum = parseInt(montoRaw, 10);
+            const montoFmt = montoRaw ? '$' + montoNum.toLocaleString('es-AR') : '';
+            return {
+                nombre:     document.getElementById('nombre').value.trim(),
+                dni:        document.getElementById('dni').value.trim(),
+                nacimiento: document.getElementById('nacimiento').value,
+                telefono:   document.getElementById('telefono').value.trim(),
+                plan:       document.getElementById('plan').value,
+                estado:     document.getElementById('estado').value,
+                fechaInicio: document.getElementById('fechaInicio').value || new Date().toISOString(),
+                primerPago: montoFmt ? {
+                    monto:    montoFmt,
+                    metodo:   document.getElementById('pago-metodo')?.value || 'Efectivo',
+                    concepto: document.getElementById('pago-concepto')?.value.trim() || '',
+                    observacion: document.getElementById('pago-observacion')?.value.trim() || ''
+                } : null
+            };
+        }
+
+        async function guardarSocio(method, url, datos) {
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+                const resultado = await res.json();
+                if (resultado.success) {
+                    switchTab('socios_lista');
+                } else {
+                    alert('Error al guardar: ' + (resultado.error || 'desconocido'));
+                }
+            } catch (err) {
+                alert('Error de conexión: ' + err.message);
+            }
+        }
+
+        // ── Socios ───────────────────────────────────────────────────────────
+        async function cargarSocios() {
+            try {
+                const r = await fetch('/api/socios/todos');
+                sociosGlobal = await r.json();
+                actualizarBadgeAlertas(sociosGlobal);
+                filtrarSocios();
+                calcularResumenSocios();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Tarjetas resumen arriba de la lista de socios (activos, vencen esta semana, vencidos, ingresos del mes)
+        async function calcularResumenSocios() {
+            const cardIngresos = document.getElementById('resumen-card-ingresos');
+            if (cardIngresos) cardIngresos.style.display = esAdmin ? '' : 'none';
+
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            let activos = 0, vencenSemana = 0, vencidos = 0;
+
+            sociosGlobal.forEach(s => {
+                const desde = new Date(s.fechaInicio || s.fechaPago);
+                const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+                const diffDays = Math.ceil((hasta - hoy) / 86400000);
+
+                if (s.estado === 'Suspendido') return;
+                if (hoy > hasta) { vencidos++; return; }
+                activos++;
+                if (diffDays >= 0 && diffDays < 7) vencenSemana++;
+            });
+
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxt('resumen-activos', activos);
+            setTxt('resumen-vencen-semana', vencenSemana);
+            setTxt('resumen-vencidos', vencidos);
+
+            if (!esAdmin) return;
+
+            try {
+                const mesActual = hoy.getMonth();
+                const anioActual = hoy.getFullYear();
+                const parseMonto = m => parseFloat(String(m || 0).replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+                const todosPagos = await Promise.all(
+                    sociosGlobal.map(s => fetch(`/api/socios/${s.dni}/pagos`).then(r => r.json()).catch(() => []))
+                );
+                const totalMes = todosPagos.flat().filter(p => {
+                    const pts = String(p.fecha || '').split('/');
+                    return pts.length === 3 && parseInt(pts[1], 10) - 1 === mesActual && parseInt(pts[2], 10) === anioActual;
+                }).reduce((s, p) => s + parseMonto(p.monto), 0);
+                setTxt('resumen-ingresos-mes', '$' + totalMes.toLocaleString('es-AR'));
+            } catch (e) {
+                setTxt('resumen-ingresos-mes', '—');
+            }
+        }
+
+        function filtrarSocios() {
+            const inputBusqueda = document.getElementById('busqueda');
+            const contadorLabel = document.getElementById('contador-socios');
+            if (!inputBusqueda) return;
+
+            const busqueda = inputBusqueda.value.toLowerCase();
+            const filtroEstado = (document.getElementById('filtroEstado')?.value || 'todos');
+            const filtroPlan  = (document.getElementById('filtroPlan')?.value  || 'todos');
+
+            const filtrados = sociosGlobal.filter(s => {
+                const coincideTexto = s.nombre.toLowerCase().includes(busqueda) || s.dni.includes(busqueda);
+                const coincidePlan  = filtroPlan === 'todos' || (s.plan || 'Musculación') === filtroPlan;
+                return coincideTexto && coincidePlan;
+            });
+
+            renderizarTabla(filtrados, filtroEstado);
+        }
+
+        function renderizarTabla(lista, filtroEstado = 'todos') {
+            const tbody = document.getElementById('lista');
+            if (!tbody) return;
+
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+
+            sociosMap.clear();
+
+            const filas = [];
+
+            lista.forEach(s => {
+                sociosMap.set(s.dni, s);
+
+                const desde = new Date(s.fechaInicio || s.fechaPago);
+                const hasta = new Date(desde);
+                hasta.setDate(desde.getDate() + 30);
+
+                const diffDays = Math.ceil((hasta - hoy) / (1000 * 60 * 60 * 24));
+
+                let estadoTexto = "AL DÍA", estadoClase = "status-ok";
+
+                if (s.estado === "Suspendido") {
+                    estadoTexto = "SUSPENDIDO";
+                    estadoClase = "status-suspendido";
+                } else if (hoy > hasta) {
+                    estadoTexto = "VENCIDO";
+                    estadoClase = "status-vencido";
+                } else if (s.plan === "Semana de Prueba" && diffDays > 23) {
+                    estadoTexto = "PRUEBA";
+                    estadoClase = "status-prueba";
+                } else if (diffDays <= 4 && diffDays >= 0) {
+                    estadoTexto = "POR VENCER";
+                    estadoClase = "status-por-vencer";
+                }
+
+                // Aplicar filtro de estado
+                if (filtroEstado !== 'todos' && estadoTexto !== filtroEstado) return;
+
+                let claseVence = '';
+                let textoRestante = '';
+                if (diffDays < 0) {
+                    claseVence = 'fecha-vencida';
+                    textoRestante = `Vencido hace ${Math.abs(diffDays)} día${Math.abs(diffDays) === 1 ? '' : 's'}`;
+                } else if (diffDays === 0) {
+                    claseVence = 'fecha-pronto';
+                    textoRestante = 'Vence hoy';
+                } else if (diffDays < 7) {
+                    claseVence = 'fecha-pronto';
+                    textoRestante = `en ${diffDays} día${diffDays === 1 ? '' : 's'}`;
+                } else {
+                    textoRestante = `en ${diffDays} días`;
+                }
+
+                filas.push(`
+                <tr>
+                    <td class="td-socio">
+                        <b class="nombre-socio nombre-link" onclick="verDetalle('${s.dni}')">${s.nombre.toUpperCase()}</b>
+                        <small class="dni-socio">${s.dni}</small>
+                    </td>
+                    <td>
+                        <span class="plan-pill">${s.plan || 'Musculación'}</span>
+                    </td>
+                    <td>
+                        <small class="fecha-desde">Desde: ${desde.toLocaleDateString('es-AR')}</small>
+                        <b class="fecha-hasta ${claseVence}">Vence: ${hasta.toLocaleDateString('es-AR')}</b>
+                        <small class="fecha-restante ${claseVence}">${textoRestante}</small>
+                    </td>
+                    <td>
+                        <span class="status-pill ${estadoClase}">${estadoTexto}</span>
+                    </td>
+                    <td style="text-align:center">
+                        <div class="acciones-row">
+                            <button class="btn-registrar-pago" onclick="cobrarMes('${s.dni}')" title="Registrar pago">
+                                <i class="fas fa-dollar-sign"></i> Registrar pago
+                            </button>
+                            <button class="dropbtn" onclick="toggleMenu(event, '${s.dni}')">
+                                <i class="fas fa-cog"></i> Gestionar
+                            </button>
+                        </div>
+                    </td>
+                </tr>`);
+            });
+
+            tbody.innerHTML = filas.join('');
+
+            // Actualizar contador con los socios visibles
+            const contador = document.getElementById('contador-socios');
+            if (contador) contador.innerText = filas.length;
+        }
+
+        async function cobrarMes(dni) {
+            const socio = sociosMap.get(String(dni));
+            let planInfo = null;
+            if (socio && socio.plan) {
+                try {
+                    const planes = await fetch('/api/planes').then(r => r.json());
+                    planInfo = planes.find(p => p.nombre === socio.plan) || null;
+                } catch (e) { planInfo = null; }
+            }
+
+            return new Promise((resolve) => {
+                // Crear modal
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                const planLinea = (socio && socio.plan)
+                    ? `<div style="font-size:.85rem;color:var(--text-soft);background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);border-radius:10px;padding:10px 14px;margin:-4px 0 16px">
+                        <b style="color:var(--text)">Plan:</b> ${socio.plan}${planInfo ? ` — $${Number(planInfo.monto).toLocaleString('es-AR')} · ${planInfo.dias} días` : ''}
+                       </div>`
+                    : '';
+                // "Débito Automático" solo se ofrece para planes Full o Flex, y aplica 10% de descuento
+                const permiteDebitoAuto = !!(socio && socio.plan && /full|flex/i.test(socio.plan));
+                const opcionDebito = permiteDebitoAuto ? '<option value="Débito Automático">Débito Automático (10% off)</option>' : '';
+                overlay.innerHTML = `
+                    <div class="modal-box">
+                        <h3 class="modal-titulo">💰 Cobrar Mes</h3>
+                        <p style="font-size:.85rem;color:var(--text-faint);margin:-8px 0 16px">Completá los datos del pago para registrarlo en el historial.</p>
+                        ${planLinea}
+                        <div class="modal-form">
+                            <label>Monto
+                                <input type="number" id="cm-monto" class="hist-input" placeholder="Ej: 15000" min="0">
+                            </label>
+                            <label>Método de pago
+                                <select id="cm-metodo" class="hist-input">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    ${opcionDebito}
+                                </select>
+                            </label>
+                            <label>Concepto
+                                <input type="text" id="cm-concepto" class="hist-input" placeholder="Ej: Cuota abril 2026">
+                            </label>
+                            <label>Observación (opcional)
+                                <textarea id="cm-observacion" class="hist-input" rows="2" placeholder="Notas sobre este pago..."></textarea>
+                            </label>
+                        </div>
+                        <div class="modal-actions" style="margin-top:20px">
+                            <button class="det-btn-volver" id="cm-cancelar">Cancelar</button>
+                            <button class="eq-btn-primary" id="cm-confirmar">Confirmar cobro</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(overlay);
+
+                // Auto-completar concepto con mes actual
+                const ahora = new Date();
+                const mes = ahora.toLocaleString('es-AR', { month: 'long' });
+                const anio = ahora.getFullYear();
+                document.getElementById('cm-concepto').value = `Mensual ${mes} ${anio}`;
+
+                // Monto sugerido según el plan; si el método es Débito Automático, se le resta 10%
+                const montoBase = planInfo ? planInfo.monto : null;
+                function actualizarMontoSegunMetodo() {
+                    if (montoBase == null) return;
+                    const conDescuento = document.getElementById('cm-metodo').value === 'Débito Automático';
+                    document.getElementById('cm-monto').value = conDescuento ? Math.round(montoBase * 0.9) : montoBase;
+                }
+                actualizarMontoSegunMetodo();
+                document.getElementById('cm-metodo').addEventListener('change', actualizarMontoSegunMetodo);
+
+                document.getElementById('cm-cancelar').onclick = () => {
+                    overlay.remove();
+                    resolve(false);
+                };
+
+                document.getElementById('cm-confirmar').onclick = async () => {
+                    const montoRaw  = document.getElementById('cm-monto').value.trim();
+                    const metodo    = document.getElementById('cm-metodo').value;
+                    const concepto  = document.getElementById('cm-concepto').value.trim() || `Mensual ${mes} ${anio}`;
+                    const observacion = document.getElementById('cm-observacion').value.trim();
+
+                    // Formatear monto como $15.000
+                    const montoNum  = parseInt(montoRaw, 10);
+                    const montoFmt  = montoRaw
+                        ? '$' + montoNum.toLocaleString('es-AR')
+                        : '';
+
+                    overlay.remove();
+
+                    try {
+                        const res = await fetch('/api/socios/cobrar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                dni,
+                                nuevaFecha: new Date().toISOString(),
+                                pago: { concepto, monto: montoFmt, metodo, observacion }
+                            })
+                        });
+                        const resultado = await res.json();
+                        if (resultado.success) {
+                            await cargarSocios();
+                            resolve(true);
+                        } else {
+                            alert('Error al cobrar: ' + (resultado.mensaje || resultado.error || 'desconocido'));
+                            resolve(false);
+                        }
+                    } catch (err) {
+                        alert('Error de conexión: ' + err.message);
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        // ── Confirmación global reutilizable ─────────────────────────────────
+        window.confirmar = function({ icono = '❓', titulo, detalle = '', labelOk = 'Confirmar', colorOk = '#ff1d1f', colorOkText = '#fff' }) {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-box" style="max-width:400px;text-align:center">
+                        <div style="font-size:2.2rem;margin-bottom:12px">${icono}</div>
+                        <h3 class="modal-titulo" style="margin-bottom:10px">${titulo}</h3>
+                        ${detalle ? `<p style="font-size:.88rem;color:var(--text-muted);margin-bottom:24px;line-height:1.5">${detalle}</p>` : '<div style="margin-bottom:24px"></div>'}
+                        <div style="display:flex;gap:10px;justify-content:center">
+                            <button id="conf-no"  class="det-btn-volver" style="flex:1">Cancelar</button>
+                            <button id="conf-si"  style="flex:1;padding:10px 20px;background:${colorOk};border:none;border-radius:10px;color:${colorOkText};font-weight:700;cursor:pointer;font-size:.9rem">${labelOk}</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(overlay);
+                const cerrar = (val) => { document.body.removeChild(overlay); resolve(val); };
+                overlay.querySelector('#conf-no').onclick  = () => cerrar(false);
+                overlay.querySelector('#conf-si').onclick  = () => cerrar(true);
+                overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(false); });
+            });
+        };
+
+       async function borrarSocio(dni) {
+    const dniLimpio = String(dni).trim();
+    const socio = sociosMap.get(dniLimpio);
+    const nombre = socio ? socio.nombre : `DNI ${dniLimpio}`;
+
+    const confirmado = await confirmar({
+        icono: '🗑️',
+        titulo: 'Eliminar socio',
+        detalle: `Estás por eliminar a <strong>${nombre.toUpperCase()}</strong><br>DNI ${dniLimpio} · Esta acción no se puede deshacer.`,
+        labelOk: 'Sí, eliminar',
+        colorOk: '#ef4444',
+        colorOkText: '#fff'
+    });
+
+    if (!confirmado) return;
+
+    try {
+        const res = await fetch(`/api/socios/${dniLimpio}`, { method: 'DELETE' });
+        if (res.ok) {
+            cargarSocios();
+            const container = document.getElementById('view-container');
+            if (container) switchTab('socios_lista');
+        } else {
+            const error = await res.json();
+            alert("Error: " + error.mensaje);
+        }
+    } catch (e) {
+        alert("Error de conexión al intentar eliminar");
+    }
+}
+
+        function toggleMenu(event, dni) {
+            event.stopPropagation();
+
+            const existing = document.getElementById('global-dropdown');
+            if (existing && existing.dataset.dni === String(dni)) {
+                cerrarMenu();
+                return;
+            }
+            cerrarMenu();
+
+            const socio = sociosMap.get(dni);
+            if (!socio) return;
+
+            const menu = document.createElement('div');
+            menu.id = 'global-dropdown';
+            menu.dataset.dni = String(dni);
+
+            const b1 = document.createElement('button');
+            b1.innerHTML = '<i class="fas fa-money-bill-wave"></i> Cobrar Mes';
+            b1.onclick = (e) => { e.stopPropagation(); cobrarMes(dni); cerrarMenu(); };
+
+            const bH = document.createElement('button');
+            bH.innerHTML = '<i class="fas fa-history"></i> Historial de pagos';
+            bH.onclick = (e) => { e.stopPropagation(); verHistorialPagos(dni); cerrarMenu(); };
+
+            const b2 = document.createElement('button');
+            b2.innerHTML = '<i class="fas fa-edit"></i> Editar Datos';
+            b2.onclick = (e) => { e.stopPropagation(); prepararEdicion(socio); cerrarMenu(); };
+
+            const b3 = document.createElement('button');
+            b3.className = 'danger-action';
+            b3.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
+            b3.onclick = (e) => { e.stopPropagation(); borrarSocio(dni); cerrarMenu(); };
+
+            menu.append(b1, bH, b2);
+            if (esAdmin) menu.append(b3);
+            document.body.appendChild(menu);
+
+            const r = event.currentTarget.getBoundingClientRect();
+            const mH = menu.offsetHeight || 130;
+            const mW = 210;
+            const top = (window.innerHeight - r.bottom < mH + 10) ? r.top - mH - 6 : r.bottom + 6;
+            const left = Math.max(8, Math.min(r.right - mW, window.innerWidth - mW - 8));
+
+            menu.style.cssText = `position:fixed; top:${top}px; left:${left}px; z-index:99999;`;
+        }
+
+        function cerrarMenu() {
+            const m = document.getElementById('global-dropdown');
+            if (m) m.remove();
+        }
+
+        async function verHistorialPagos(dni) {
+            const socio = sociosMap.get(String(dni));
+            const nombre = socio ? socio.nombre : `DNI ${dni}`;
+
+            const pagos = await fetch(`/api/socios/${dni}/pagos`).then(r => r.json()).catch(() => []);
+
+            const metodoPill = m => {
+                const map = { 'Efectivo':'#84cc16', 'Transferencia':'#60a5fa', 'Débito':'#a78bfa', 'Crédito':'#f59e0b' };
+                const color = map[m] || '#94a3b8';
+                return `<span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;background:${color}22;color:${color};border:1px solid ${color}44">${m||'—'}</span>`;
+            };
+
+            const parseMonto = m => parseFloat(String(m||0).replace(/[^0-9,]/g,'').replace(',','.')) || 0;
+
+            const totalMes = (() => {
+                const hoy = new Date();
+                return pagos.filter(p => {
+                    const pts = String(p.fecha||'').split('/');
+                    return pts.length === 3 && parseInt(pts[1],10)-1 === hoy.getMonth() && parseInt(pts[2],10) === hoy.getFullYear();
+                }).reduce((s,p) => s + parseMonto(p.monto), 0);
+            })();
+
+            const filas = pagos.length
+                ? pagos.map(p => `
+                    <div style="display:grid;grid-template-columns:90px 1fr 100px 90px 80px;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--panel-border);font-size:.84rem">
+                        <span style="color:var(--text-soft)">${p.fecha||'—'}</span>
+                        <span><span style="font-weight:600">${p.concepto||'—'}</span>${p.observacion ? `<br><small style="color:var(--text-faint)">${p.observacion}</small>` : ''}</span>
+                        <span style="font-weight:800;color:var(--primary)">$${parseMonto(p.monto).toLocaleString('es-AR')}</span>
+                        ${metodoPill(p.metodo)}
+                        <span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25)">${p.estado||'Pagado'}</span>
+                    </div>`).join('')
+                : `<div style="text-align:center;padding:32px;color:var(--text-faint);font-size:.88rem">Sin pagos registrados</div>`;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-box" style="max-width:620px;padding:0;overflow:hidden">
+                    <div style="padding:24px 28px 20px;border-bottom:1px solid var(--panel-border)">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                            <div>
+                                <p style="font-size:.7rem;font-weight:700;letter-spacing:2px;color:var(--primary);text-transform:uppercase;margin-bottom:4px">Historial de pagos</p>
+                                <h3 style="font-size:1.1rem;font-weight:800;margin:0">${nombre.toUpperCase()}</h3>
+                                <p style="font-size:.8rem;color:var(--text-soft);margin-top:2px">DNI ${dni} · ${pagos.length} registro${pagos.length !== 1 ? 's' : ''}</p>
+                            </div>
+                            <div style="text-align:right">
+                                <p style="font-size:.7rem;color:var(--text-soft);margin-bottom:2px">Total este mes</p>
+                                <p style="font-size:1.4rem;font-weight:900;color:var(--primary)">$${totalMes.toLocaleString('es-AR')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${pagos.length ? `
+                    <div style="display:grid;grid-template-columns:90px 1fr 100px 90px 80px;gap:10px;padding:10px 16px;border-bottom:1px solid var(--panel-border)">
+                        <span style="font-size:.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-faint);text-transform:uppercase">Fecha</span>
+                        <span style="font-size:.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-faint);text-transform:uppercase">Concepto</span>
+                        <span style="font-size:.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-faint);text-transform:uppercase">Monto</span>
+                        <span style="font-size:.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-faint);text-transform:uppercase">Método</span>
+                        <span style="font-size:.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-faint);text-transform:uppercase">Estado</span>
+                    </div>` : ''}
+
+                    <div style="max-height:360px;overflow-y:auto">${filas}</div>
+
+                    <div style="padding:16px 28px;display:flex;justify-content:flex-end">
+                        <button id="hist-cerrar" class="det-btn-volver">Cerrar</button>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(overlay);
+            overlay.querySelector('#hist-cerrar').onclick = () => document.body.removeChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) document.body.removeChild(overlay); });
+        }
+        async function borradoEmergencia(identificador) {
+    const ok = await confirmar({
+        icono: '⚠️',
+        titulo: '¿Forzar eliminación?',
+        detalle: `Se eliminará el registro: <strong>${identificador}</strong>. Esta acción no se puede deshacer.`,
+        labelOk: 'Sí, forzar',
+        colorOk: '#ef4444',
+        colorOkText: '#fff'
+    });
+    if (!ok) return;
+    
+    // Obtenemos todos los socios primero para encontrar el ID real
+    const response = await fetch('/api/socios/todos');
+    const socios = await response.json();
+    
+    // Buscamos el socio que coincida con lo que ves en pantalla
+    const socioEncontrado = socios.find(s => 
+        s.nombre.includes(identificador) || s.dni.includes(identificador)
+    );
+
+    if (socioEncontrado) {
+        const res = await fetch(`/api/socios/${socioEncontrado.dni}`, { method: 'DELETE' });
+        if (res.ok) {
+            alert("¡Eliminado con éxito!");
+            location.reload(); // Recargamos para limpiar la vista
+        }
+    } else {
+        alert("No se encontró ese socio en la base de datos real.");
+    }
+}
+
+        window.onclick = () => cerrarMenu();
+
+        function cerrarSesion() {
+            localStorage.removeItem('gym_session');
+            window.location.href = '/login.html';
+        }
+
+        function actualizarBadgeAlertas(socios) {
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+            let count = 0;
+            socios.forEach(s => {
+                if (s.estado === 'Suspendido') return;
+                const desde = new Date(s.fechaInicio || s.fechaPago);
+                const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+                const diff  = Math.ceil((hasta - hoy) / 86400000);
+                if (diff <= 4) count++; // vencidos + por vencer (4 días o menos)
+            });
+            const badge = document.getElementById('badge-alertas');
+            if (!badge) return;
+            if (count > 0) { badge.style.display = 'inline-block'; badge.textContent = count; }
+            else             { badge.style.display = 'none'; }
+        }
+
+        window.actualizarBadgePreinscripciones = function (count) {
+            const badge = document.getElementById('nav-preinscripciones-badge');
+            if (!badge) return;
+            if (count > 0) { badge.hidden = false; badge.textContent = count; }
+            else            { badge.hidden = true; }
+        };
+
+        async function cargarBadgePreinscripciones() {
+            try {
+                const r = await fetch('/api/preinscripciones/todas');
+                const pendientes = await r.json();
+                actualizarBadgePreinscripciones(pendientes.length);
+            } catch (e) { /* silencioso: solo afecta el contador */ }
+        }
+
+        function exportarSociosCSV() {
+            if (!sociosMap || sociosMap.size === 0) { alert('No hay socios para exportar.'); return; }
+            const SEP = ';'; // Excel reconoce ; como separador de columnas
+            const cabecera = ['Nombre','DNI','Teléfono','Nacimiento','Plan','Estado','Fecha Inicio','Fecha Vencimiento'].join(SEP);
+            const filas = [];
+            sociosMap.forEach(s => {
+                const desde = new Date(s.fechaInicio || s.fechaPago);
+                const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+                const fmt = d => { try { return new Date(d).toLocaleDateString('es-AR'); } catch { return ''; } };
+                filas.push([
+                    `"${(s.nombre || '').replace(/"/g,'""')}"`,
+                    s.dni || '',
+                    `"${(s.telefono || '').replace(/"/g,'""')}"`,
+                    s.nacimiento ? fmt(s.nacimiento) : '',
+                    `"${(s.plan || '').replace(/"/g,'""')}"`,
+                    `"${(s.estado || '').replace(/"/g,'""')}"`,
+                    fmt(s.fechaInicio || s.fechaPago),
+                    fmt(hasta)
+                ].join(SEP));
+            });
+            const csv  = [cabecera, ...filas].join('\r\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = `socios_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ── Dashboard KPIs + Charts ────────────────────────────────────────
+        let _dashCharts = {};
+        async function cargarDashboardKPIs() {
+            try {
+                const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+                // ── Rango de fechas (Desde / Hasta) ─────────────────────
+                const inputDesde = document.getElementById('dash-desde');
+                const inputHasta = document.getElementById('dash-hasta');
+                if (inputHasta && !inputHasta.value) inputHasta.value = hoy.toISOString().slice(0, 10);
+                if (inputDesde && !inputDesde.value) {
+                    const hace30 = new Date(hoy); hace30.setDate(hace30.getDate() - 29);
+                    inputDesde.value = hace30.toISOString().slice(0, 10);
+                }
+                const desdeStr    = inputDesde ? inputDesde.value : '';
+                const hastaStr    = inputHasta ? inputHasta.value : '';
+                const rangoDesde  = desdeStr ? new Date(desdeStr + 'T00:00:00') : null;
+                const rangoHasta  = hastaStr ? new Date(hastaStr + 'T23:59:59') : hoy;
+
+                const [socios, equipos, asistencia] = await Promise.all([
+                    fetch('/api/socios/todos').then(r => r.json()).catch(() => []),
+                    fetch('/api/equipos').then(r => r.json()).catch(() => []),
+                    fetch(`/api/asistencia?desde=${desdeStr}&hasta=${hastaStr}`).then(r => r.json()).catch(() => []),
+                ]);
+
+                const mesesNombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+                // ── Estado de socios a la fecha "hasta" del período ─────
+                const sociosEnRango = socios.filter(s => new Date(s.fechaInicio || s.fechaPago) <= rangoHasta);
+                let alDia = 0, vencidos = 0, porVencer = 0;
+                const planCount = {};
+                sociosEnRango.forEach(s => {
+                    const plan = s.plan || 'Musculación';
+                    planCount[plan] = (planCount[plan] || 0) + 1;
+                    if (s.estado === 'Suspendido') return;
+                    const desde = new Date(s.fechaInicio || s.fechaPago);
+                    const hasta = new Date(desde); hasta.setDate(desde.getDate() + 30);
+                    const diff  = Math.ceil((hasta - rangoHasta) / 86400000);
+                    if (rangoHasta > hasta)    vencidos++;
+                    else if (diff <= 4) porVencer++;
+                    else                alDia++;
+                });
+                const total = sociosEnRango.length;
+                const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+                set('kpi-socios',        total);
+                set('kpi-socios-delta',  `${alDia} al día · ${porVencer} por vencer`);
+                set('kpi-vencidos',      vencidos);
+                set('dash-total-socios', total);
+                set('alerta-vencidos',   `${vencidos} socios con cuota vencida`);
+                set('dash-tasa', total > 0 ? ((alDia / total) * 100).toFixed(1) + '%' : '—');
+
+                // ── KPI Equipos (estado actual, no depende del rango) ───
+                const operativos = equipos.filter(e => e.estado === 'Operativo').length;
+                const conAlerta  = equipos.filter(e => e.estado !== 'Operativo').length;
+                set('kpi-equipos',       operativos);
+                set('kpi-equipos-delta', conAlerta > 0 ? `${conAlerta} con alerta técnica` : 'Todos operativos');
+
+                // ── Alerta mantenimiento vencido (estado actual) ────────
+                const vencidosMant = equipos.filter(e => {
+                    if (!e.mantenimiento || e.mantenimiento === '—') return false;
+                    const p = String(e.mantenimiento).split('/');
+                    if (p.length !== 3) return false;
+                    const fecha = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+                    return fecha < hoy;
+                });
+                const elMantTitle = document.getElementById('alerta-mant-title');
+                const elMantDesc  = document.getElementById('alerta-mant-desc');
+                if (elMantTitle) {
+                    if (vencidosMant.length === 0) {
+                        elMantTitle.innerText = 'Sin equipos con mantenimiento vencido';
+                        if (elMantDesc) elMantDesc.innerText = 'Todos los mantenimientos están al día.';
+                    } else {
+                        elMantTitle.innerText = `${vencidosMant.length} equipo${vencidosMant.length > 1 ? 's' : ''} con mantenimiento vencido`;
+                        if (elMantDesc) elMantDesc.innerText = vencidosMant.slice(0, 3).map(e => e.nombre).join(', ') + (vencidosMant.length > 3 ? ` y ${vencidosMant.length - 3} más.` : '.');
+                    }
+                }
+
+                // ── Pagos dentro del período seleccionado ───────────────
+                const parseMonto = m => parseFloat(String(m||0).replace(/[^0-9,]/g,'').replace(',','.')) || 0;
+                const parseFechaPago = f => {
+                    const pts = String(f).split('/');
+                    if (pts.length !== 3) return null;
+                    const d = new Date(parseInt(pts[2],10), parseInt(pts[1],10) - 1, parseInt(pts[0],10));
+                    return isNaN(d) ? null : d;
+                };
+                const todosPagos = await Promise.all(
+                    socios.map(s => fetch(`/api/socios/${s.dni}/pagos`).then(r => r.json()).catch(() => []))
+                );
+                const pagosPlanos = todosPagos.flat().filter(p => p.monto && p.monto !== '—' && p.fecha && p.fecha !== '—');
+                const pagosEnRango = pagosPlanos.filter(p => {
+                    const f = parseFechaPago(p.fecha);
+                    if (!f) return false;
+                    if (rangoDesde && f < rangoDesde) return false;
+                    if (f > rangoHasta) return false;
+                    return true;
+                });
+
+                const totalIngresos = pagosEnRango.reduce((s, p) => s + parseMonto(p.monto), 0);
+                set('kpi-ingresos', '$' + totalIngresos.toLocaleString('es-AR'));
+
+                const elDelta = document.getElementById('kpi-ingresos-delta');
+                if (elDelta) {
+                    if (rangoDesde) {
+                        const duracionMs = rangoHasta - rangoDesde;
+                        const prevHasta  = new Date(rangoDesde.getTime() - 1000);
+                        const prevDesde  = new Date(prevHasta.getTime() - duracionMs);
+                        const totalAnt = pagosPlanos.reduce((s, p) => {
+                            const f = parseFechaPago(p.fecha);
+                            if (!f || f < prevDesde || f > prevHasta) return s;
+                            return s + parseMonto(p.monto);
+                        }, 0);
+                        if (totalAnt > 0) {
+                            const pct = ((totalIngresos - totalAnt) / totalAnt * 100).toFixed(1);
+                            elDelta.innerText = `${pct >= 0 ? '+' : ''}${pct}% vs período anterior`;
+                            elDelta.className = 'dash-kpi-delta ' + (pct >= 0 ? 'dash-delta-ok' : 'dash-delta-danger');
+                        } else {
+                            elDelta.innerText = 'Sin datos del período anterior';
+                            elDelta.className = 'dash-kpi-delta dash-delta-ok';
+                        }
+                    } else {
+                        elDelta.innerText = '';
+                    }
+                }
+
+                // ── Destruir charts previos si existen ──────────────────
+                Object.values(_dashCharts).forEach(c => c.destroy());
+                _dashCharts = {};
+
+                const tooltipStyle = {
+                    backgroundColor:'#08101b', borderColor:'rgba(255,255,255,0.08)',
+                    borderWidth:1, borderRadius:12, titleColor:'#fff',
+                    bodyColor:'rgba(255,255,255,0.7)', padding:12
+                };
+                const gridColor = 'rgba(255,255,255,0.07)';
+
+                // ── Chart 1: Ingresos por mes dentro del período ────────
+                const mesesEnRango = [];
+                if (rangoDesde) {
+                    let cursor = new Date(rangoDesde.getFullYear(), rangoDesde.getMonth(), 1);
+                    const limite = new Date(rangoHasta.getFullYear(), rangoHasta.getMonth(), 1);
+                    while (cursor <= limite && mesesEnRango.length < 36) {
+                        mesesEnRango.push({ mes: cursor.getMonth(), anio: cursor.getFullYear() });
+                        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+                    }
+                } else {
+                    mesesEnRango.push({ mes: rangoHasta.getMonth(), anio: rangoHasta.getFullYear() });
+                }
+                const labelsMeses  = mesesEnRango.map(m => `${mesesNombres[m.mes]} ${String(m.anio).slice(2)}`);
+                const totalesMeses = mesesEnRango.map(m =>
+                    pagosEnRango.filter(p => { const f = parseFechaPago(p.fecha); return f.getMonth() === m.mes && f.getFullYear() === m.anio; })
+                                .reduce((s, p) => s + parseMonto(p.monto), 0)
+                );
+
+                const ctxIngresos = document.getElementById('chart-ingresos');
+                if (ctxIngresos) {
+                    _dashCharts.ingresos = new Chart(ctxIngresos, {
+                        type: 'bar',
+                        data: {
+                            labels: labelsMeses,
+                            datasets: [{
+                                data: totalesMeses,
+                                backgroundColor: ctx => ctx.dataIndex === totalesMeses.length - 1 ? '#ff1d1f' : 'rgba(255,29,31,0.45)',
+                                borderRadius: 10, borderSkipped: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, tooltip: { ...tooltipStyle, callbacks: { label: ctx => ' $' + ctx.raw.toLocaleString('es-AR') } } },
+                            scales: {
+                                x: { grid: { display: false }, border: { display: false } },
+                                y: { grid: { color: gridColor }, border: { display: false }, ticks: { callback: v => v === 0 ? '$0' : '$' + (v/1000).toFixed(0) + 'k' } }
+                            }
+                        }
+                    });
+                }
+
+                // ── Chart 2: Estado socios (Donut) ──────────────────────
+                const estadoData = [
+                    { name: 'Al día',       value: alDia,     color: '#84cc16' },
+                    { name: 'Vence pronto', value: porVencer, color: '#f59e0b' },
+                    { name: 'Vencidos',     value: vencidos,  color: '#f43f5e' },
+                ];
+                const ctxEstado = document.getElementById('chart-estado');
+                if (ctxEstado) {
+                    _dashCharts.estado = new Chart(ctxEstado, {
+                        type: 'doughnut',
+                        data: { labels: estadoData.map(d => d.name), datasets: [{ data: estadoData.map(d => d.value), backgroundColor: estadoData.map(d => d.color), borderWidth: 0, hoverOffset: 6 }] },
+                        options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { ...tooltipStyle } } }
+                    });
+                    const legend = document.getElementById('dash-estado-legend');
+                    if (legend) legend.innerHTML = estadoData.map(d => `<div class="dash-donut-item"><span class="dash-donut-dot" style="background:${d.color}"></span><span>${d.name}</span><b>${d.value}</b></div>`).join('');
+                }
+
+                // ── Asistencia dentro del período (diaria o por mes si es extenso) ──
+                const totalAsist = asistencia.reduce((s, d) => s + d.cantidad, 0);
+                const diasConDatos = asistencia.filter(d => d.cantidad > 0).length || 1;
+                const promAsist = (totalAsist / diasConDatos).toFixed(1);
+                set('dash-prom-asist', promAsist % 1 === 0 ? `${parseInt(promAsist)} ingresos` : `${promAsist} ingresos`);
+
+                const ctxAsist = document.getElementById('chart-asistencia');
+                if (ctxAsist) {
+                    let labAsist, dataAsist;
+                    if (asistencia.length <= 31) {
+                        labAsist  = asistencia.map(d => asistencia.length <= 7 ? d.dia : d.fecha.split('/').slice(0, 2).join('/'));
+                        dataAsist = asistencia.map(d => d.cantidad);
+                    } else {
+                        const porMes = {};
+                        asistencia.forEach(d => {
+                            const pts = d.fecha.split('/');
+                            const key = `${pts[1]}/${pts[2]}`;
+                            porMes[key] = (porMes[key] || 0) + d.cantidad;
+                        });
+                        const claves = Object.keys(porMes).sort((a, b) => {
+                            const [ma, aa] = a.split('/').map(Number);
+                            const [mb, ab] = b.split('/').map(Number);
+                            return aa - ab || ma - mb;
+                        });
+                        labAsist  = claves.map(k => { const [m, a] = k.split('/'); return `${mesesNombres[parseInt(m,10) - 1]} ${String(a).slice(2)}`; });
+                        dataAsist = claves.map(k => porMes[k]);
+                    }
+                    const maxAsist = Math.max(...dataAsist, 0);
+                    _dashCharts.asistencia = new Chart(ctxAsist, {
+                        type: 'line',
+                        data: { labels: labAsist, datasets: [{ data: dataAsist, borderColor:'#ff1d1f', backgroundColor:'rgba(255,29,31,0.08)', borderWidth:3, pointBackgroundColor: dataAsist.map(v => v === maxAsist && maxAsist > 0 ? '#fff' : '#ff1d1f'), pointRadius: dataAsist.map(v => v === maxAsist && maxAsist > 0 ? 6 : 4), fill:true, tension:0.35 }] },
+                        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{...tooltipStyle, callbacks:{ label: ctx => ' ' + ctx.raw + ' ingresos' }} }, scales:{ x:{grid:{display:false},border:{display:false}}, y:{grid:{color:gridColor},border:{display:false}, ticks:{stepSize:1}} } }
+                    });
+                    // Actualizar panel alerta (siempre en base al detalle diario real)
+                    const maxAsistDia = asistencia.reduce((max, d) => d.cantidad > max.cantidad ? d : max, { cantidad: 0 });
+                    const elAlerta = document.getElementById('alerta-asistencia');
+                    if (elAlerta) {
+                        elAlerta.innerText = maxAsistDia.cantidad > 0
+                            ? `${maxAsistDia.fecha} fue el día con más asistencia (${maxAsistDia.cantidad} ingresos)`
+                            : 'Sin datos de asistencia en este período';
+                    }
+                }
+
+                // ── Chart 4: Equipos por estado (estado actual) ─────────
+                const ctxEquipos = document.getElementById('chart-equipos');
+                if (ctxEquipos) {
+                    // Tomar categorías reales de los datos, caer a las 4 fijas si no hay equipos
+                    const catsReales = [...new Set(equipos.map(e => e.categoria || 'Sin categoría'))];
+                    const cats = catsReales.length ? catsReales : ['Cardio','Musculación','Funcional','Accesorios'];
+                    const eOp  = cats.map(c => equipos.filter(e => (e.categoria||'Sin categoría') === c && e.estado === 'Operativo').length);
+                    const eRev = cats.map(c => equipos.filter(e => (e.categoria||'Sin categoría') === c && e.estado === 'En revisión').length);
+                    const eFS  = cats.map(c => equipos.filter(e => (e.categoria||'Sin categoría') === c && e.estado === 'Fuera de servicio').length);
+                    _dashCharts.equipos = new Chart(ctxEquipos, {
+                        type:'bar',
+                        data:{ labels: cats, datasets:[
+                            { label:'Operativos',        data: eOp,  backgroundColor:'#84cc16', borderRadius:6, borderSkipped:false },
+                            { label:'En revisión',       data: eRev, backgroundColor:'#f59e0b', borderRadius:6, borderSkipped:false },
+                            { label:'Fuera de servicio', data: eFS,  backgroundColor:'#f43f5e', borderRadius:6, borderSkipped:false },
+                        ]},
+                        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:12,padding:16}},tooltip:{...tooltipStyle}}, scales:{x:{stacked:true,grid:{display:false},border:{display:false}},y:{stacked:true,grid:{color:gridColor},border:{display:false}}} }
+                    });
+                }
+
+                // ── Resumen ejecutivo: ticket promedio, mant pendiente, mejor plan ──
+                const ticketProm = pagosEnRango.length > 0
+                    ? Math.round(pagosEnRango.reduce((s, p) => s + parseMonto(p.monto), 0) / pagosEnRango.length)
+                    : 0;
+                set('dash-ticket-prom', ticketProm > 0 ? '$' + ticketProm.toLocaleString('es-AR') : '—');
+
+                set('dash-mant-pendiente', vencidosMant.length > 0 ? `${vencidosMant.length} equipo${vencidosMant.length > 1 ? 's' : ''}` : 'Sin pendientes');
+
+                const mejorPlan = Object.entries(planCount).sort((a,b) => b[1] - a[1])[0];
+                set('dash-mejor-plan', mejorPlan ? mejorPlan[0] : '—');
+
+                // ── Chart 5: Ingresos por método de pago (período seleccionado) ──
+                const metodos     = ['Efectivo', 'Transferencia'];
+                const metodoColor = ['#84cc16', '#60a5fa'];
+                const metodoTotales = metodos.map(met =>
+                    pagosEnRango.filter(p => (p.metodo||'Efectivo') === met)
+                            .reduce((s, p) => s + parseMonto(p.monto), 0)
+                );
+                // Expuesto para que la pestaña Gastos pueda mostrar las Entradas separadas por método.
+                window._dashMetodoTotales = { metodos, metodoColor, metodoTotales };
+
+                const ctxMetodos = document.getElementById('chart-metodos');
+                if (ctxMetodos) {
+                    _dashCharts.metodos = new Chart(ctxMetodos, {
+                        type: 'doughnut',
+                        data: {
+                            labels: metodos,
+                            datasets: [{
+                                data: metodoTotales,
+                                backgroundColor: metodoColor,
+                                borderWidth: 0,
+                                hoverOffset: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, cutout: '60%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { ...tooltipStyle, callbacks: { label: ctx => ` $${ctx.raw.toLocaleString('es-AR')}` } }
+                            }
+                        }
+                    });
+
+                    const detalle = document.getElementById('metodos-detalle');
+                    if (detalle) {
+                        const totalGeneral = metodoTotales.reduce((s, v) => s + v, 0);
+                        detalle.innerHTML = metodos.map((m, i) => {
+                            const pct = totalGeneral > 0 ? ((metodoTotales[i] / totalGeneral) * 100).toFixed(0) : 0;
+                            return `
+                            <div style="flex:1;min-width:120px;background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);border-radius:12px;padding:14px 16px">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                    <span style="width:10px;height:10px;border-radius:50%;background:${metodoColor[i]};flex-shrink:0"></span>
+                                    <span style="font-size:.78rem;font-weight:600;color:var(--text-soft)">${m}</span>
+                                </div>
+                                <p style="font-size:1.1rem;font-weight:800;color:var(--text);margin:0">$${metodoTotales[i].toLocaleString('es-AR')}</p>
+                                <p style="font-size:.75rem;color:var(--text-faint);margin-top:2px">${pct}% del total</p>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+
+            } catch(e) { console.error('Dashboard KPIs error:', e); }
+        }
+
+        window.onload = () => { switchTab('socios_lista'); cargarBadgePreinscripciones(); };
+    </script>
+</body>
+</html>
