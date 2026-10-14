@@ -1348,6 +1348,11 @@ select option {
 /* ── DASHBOARD KPI ─────────────────────────────────────────────────────── */
 .dash-wrap { padding: 8px 0 32px; display: flex; flex-direction: column; gap: 24px; }
 
+/* Las filas del dashboard (KPIs, gráficos, etc.) quedaron dentro de .eqv2-panel al
+   agregar las pestañas Entradas/Gastos; .eqv2-panel.active es display:block, asi que
+   se restaura el mismo espaciado flex que tenia .dash-wrap, solo para esta pestaña. */
+#dash-panel-entradas.active { display: flex; flex-direction: column; gap: 24px; }
+
 .dash-subtitle { margin: 8px 0 0; font-size: 0.9rem; color: var(--text-faint); max-width: 600px; }
 
 .dash-kpi-grid {
