@@ -1237,8 +1237,11 @@
                 }
 
                 // ── Asistencia dentro del período (diaria o por mes si es extenso) ──
-                const totalAsist = asistencia.reduce((s, d) => s + d.cantidad, 0);
-                const diasConDatos = asistencia.filter(d => d.cantidad > 0).length || 1;
+                // El promedio diario NO cuenta los domingos (ni en la suma ni en los días
+                // que se dividen): siempre se calcula sobre lunes a sábado.
+                const asistenciaSinDomingo = asistencia.filter(d => d.dia !== 'Dom');
+                const totalAsist = asistenciaSinDomingo.reduce((s, d) => s + d.cantidad, 0);
+                const diasConDatos = asistenciaSinDomingo.filter(d => d.cantidad > 0).length || 1;
                 const promAsist = (totalAsist / diasConDatos).toFixed(1);
                 set('dash-prom-asist', promAsist % 1 === 0 ? `${parseInt(promAsist)} ingresos` : `${promAsist} ingresos`);
 
