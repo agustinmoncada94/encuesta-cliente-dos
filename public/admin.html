@@ -747,7 +747,6 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 dni,
-                                nuevaFecha: new Date().toISOString(),
                                 pago: { concepto, monto: montoFmt, metodo, observacion }
                             })
                         });

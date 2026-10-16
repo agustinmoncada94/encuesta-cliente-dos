@@ -289,7 +289,7 @@ app.delete('/api/preinscripciones/:dni', async (req, res) => {
 
 // RUTA PARA ACTUALIZAR EL PAGO (COBRAR MES) - VERSIÓN REDIS
 app.post('/api/socios/cobrar', async (req, res) => {
-    const { dni, nuevaFecha, pago } = req.body;
+    const { dni, pago } = req.body;
 
     try {
         await conectar();
@@ -297,7 +297,17 @@ app.post('/api/socios/cobrar', async (req, res) => {
 
         if (datosSocioJSON) {
             const socio = JSON.parse(datosSocioJSON);
-            socio.fechaInicio = nuevaFecha;
+
+            // El nuevo ciclo arranca donde termina el actual (si todavía no venció), NUNCA
+            // desde "hoy": así un socio que paga antes de tiempo (adelanta el pago) no pierde
+            // los días que le quedaban ni el ciclo se corre de forma arbitraria. Si ya está
+            // vencido, o paga justo el día que vence, el nuevo ciclo arranca hoy como siempre.
+            const hoy = new Date();
+            const fechaInicioActual = new Date(socio.fechaInicio || socio.fechaPago || hoy);
+            const vencimientoActual = new Date(fechaInicioActual);
+            vencimientoActual.setDate(vencimientoActual.getDate() + 30);
+
+            socio.fechaInicio = (vencimientoActual > hoy ? vencimientoActual : hoy).toISOString();
             socio.estado = 'Activo';
             await client.set(`socio:${dni}`, JSON.stringify(socio));
 
