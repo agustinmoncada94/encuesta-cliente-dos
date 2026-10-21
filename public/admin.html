@@ -65,6 +65,11 @@
 
                 <button class="nav-link" id="nav-dashboard" onclick="switchTab('dashboard')">
                     <i class="fas fa-chart-line"></i>
+                    <span>Dashboard KPI</span>
+                </button>
+
+                <button class="nav-link" id="nav-administracion" onclick="switchTab('administracion')">
+                    <i class="fas fa-wallet"></i>
                     <span>Administración</span>
                 </button>
             </nav>
@@ -125,7 +130,7 @@
             }
             if (!esAdmin) {
                 // Ocultar tabs que Profesor no puede ver
-                ['nav-dashboard', 'nav-equipos', 'nav-planes', 'nav-profesores', 'nav-preinscripciones'].forEach(id => {
+                ['nav-dashboard', 'nav-administracion', 'nav-equipos', 'nav-planes', 'nav-profesores', 'nav-preinscripciones'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
                 });
@@ -284,7 +289,7 @@
 
         async function switchTab(tabName) {
             // Bloquear acceso a tabs restringidos para Profesor
-            if (!esAdmin && ['dashboard', 'equipos', 'planes', 'profesores', 'preinscripciones'].includes(tabName)) {
+            if (!esAdmin && ['dashboard', 'administracion', 'equipos', 'planes', 'profesores', 'preinscripciones'].includes(tabName)) {
                 await confirmar({
                     icono: '🔒',
                     titulo: 'Acceso restringido',
@@ -307,7 +312,8 @@
                     profesores: 'Profesores',
                     preinscripciones: 'Preinscripciones',
                     equipos: 'Equipamiento',
-                    dashboard: 'Administración'
+                    dashboard: 'Dashboard KPI',
+                    administracion: 'Administración'
                 };
                 const topbarTitulo = document.getElementById('topbar-titulo');
                 if (topbarTitulo) topbarTitulo.innerText = titulosTab[tabName] || 'Panel de Control';
@@ -328,7 +334,7 @@
                 });
 
                 if (tabName === 'socios_lista') await cargarSocios();
-                if (tabName === 'dashboard')    cargarDashboardKPIs();
+                if (tabName === 'dashboard' || tabName === 'administracion') cargarDashboardKPIs();
 
                 if (tabName === 'socios_registro') {
                     // Modo REGISTRO NUEVO
