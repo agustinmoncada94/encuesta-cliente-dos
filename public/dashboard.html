@@ -3,15 +3,16 @@
     <!-- Header -->
     <div class="dash-page-header">
         <div>
-            <h1 class="equip-titulo">Dashboard KPI</h1>
-            <p class="dash-subtitle">Vista general del negocio: entradas (pagos), gastos, estado de socios, asistencia y mantenimiento de equipamiento.</p>
+            <h1 class="equip-titulo">Administración</h1>
+            <p class="dash-subtitle">Ingresos (pagos), gastos, movimientos entre cajas, estado de socios, asistencia y mantenimiento de equipamiento.</p>
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="eqv2-tabs">
-        <button class="eqv2-tab active" id="dash-tab-entradas">📈 Entradas</button>
+        <button class="eqv2-tab active" id="dash-tab-entradas">📈 Ingresos</button>
         <button class="eqv2-tab" id="dash-tab-gastos">💸 Gastos</button>
+        <button class="eqv2-tab" id="dash-tab-movimientos">🔄 Movimientos</button>
     </div>
 
     <!-- ══ PANEL: ENTRADAS ══ -->
@@ -189,7 +190,7 @@
     <!-- ══ PANEL: GASTOS ══ -->
     <div class="eqv2-panel" id="dash-panel-gastos">
 
-        <!-- KPIs del período (mismo rango de fechas que la pestaña Entradas) -->
+        <!-- KPIs del período (mismo rango de fechas que la pestaña Ingresos) -->
         <div class="dash-kpi-grid" style="grid-template-columns:repeat(3,1fr)">
             <div class="dash-kpi-card">
                 <div class="dash-kpi-top">
@@ -198,7 +199,7 @@
                 </div>
                 <p class="dash-kpi-label">Entradas del período</p>
                 <p class="dash-kpi-value" id="gasto-kpi-entradas">—</p>
-                <p class="dash-kpi-delta dash-delta-ok">Mismo rango que la pestaña Entradas</p>
+                <p class="dash-kpi-delta dash-delta-ok">Mismo rango que la pestaña Ingresos</p>
                 <div id="gasto-entradas-metodos" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
             </div>
             <div class="dash-kpi-card">
@@ -259,7 +260,7 @@
                 <button class="det-btn-volver" id="gasto-btn-exportar" style="font-size:.8rem;padding:7px 14px">Exportar</button>
             </div>
             <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
-                Mostrando el período seleccionado en la pestaña Entradas: <b id="gasto-rango-texto">—</b>
+                Mostrando el período seleccionado en la pestaña Ingresos: <b id="gasto-rango-texto">—</b>
             </p>
             <div style="overflow-x:auto">
                 <table class="eqv2-table">
@@ -274,12 +275,18 @@
             </div>
         </div>
 
+    </div>
+    <!-- ══ FIN PANEL GASTOS ══ -->
+
+    <!-- ══ PANEL: MOVIMIENTOS ══ -->
+    <div class="eqv2-panel" id="dash-panel-movimientos">
+
         <div class="eqv2-card">
             <div class="eqv2-card-title">Pasar dinero entre cajas</div>
             <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
                 Para cuando movés plata de Efectivo a Transferencia (o al revés) sin que sea un gasto real,
-                por ejemplo retirar del banco para tener efectivo en caja. No afecta el Balance total, solo
-                ajusta el balance de cada método.
+                por ejemplo retirar del banco para tener efectivo en caja. No afecta el Balance total (en la
+                pestaña Gastos), solo ajusta el balance de cada método.
             </p>
             <div class="eqv2-form-grid">
                 <div>
@@ -312,7 +319,7 @@
         <div class="eqv2-card">
             <div class="eqv2-card-title">Movimientos entre cajas</div>
             <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
-                Mostrando el período seleccionado en la pestaña Entradas.
+                Mostrando el período seleccionado en la pestaña Ingresos: <b id="mov-rango-texto">—</b>
             </p>
             <div style="overflow-x:auto">
                 <table class="eqv2-table">
@@ -325,7 +332,7 @@
         </div>
 
     </div>
-    <!-- ══ FIN PANEL GASTOS ══ -->
+    <!-- ══ FIN PANEL MOVIMIENTOS ══ -->
 
 </div>
 
@@ -347,18 +354,22 @@
     };
 
     // ── Tabs Entradas / Gastos ──────────────────────────────────────────
+    const DASH_TABS = ['entradas', 'gastos', 'movimientos'];
     function activarDashTab(nombre) {
-        document.querySelectorAll('#dash-panel-entradas, #dash-panel-gastos').forEach(p => p.classList.remove('active'));
-        document.getElementById('dash-tab-entradas').classList.remove('active');
-        document.getElementById('dash-tab-gastos').classList.remove('active');
+        DASH_TABS.forEach(n => {
+            document.getElementById('dash-panel-' + n).classList.remove('active');
+            document.getElementById('dash-tab-' + n).classList.remove('active');
+        });
         document.getElementById('dash-panel-' + nombre).classList.add('active');
         document.getElementById('dash-tab-' + nombre).classList.add('active');
-        // Los movimientos entre cajas se cargan primero: el cálculo del Balance por método
-        // (dentro de renderGastos) los necesita ya filtrados.
-        if (nombre === 'gastos') cargarMovimientos().then(() => cargarGastos());
+        // El cálculo del Balance por método (dentro de renderGastos) necesita los
+        // movimientos ya filtrados, así que siempre se cargan antes que los gastos.
+        if (nombre === 'gastos')      cargarMovimientos().then(() => cargarGastos());
+        if (nombre === 'movimientos') cargarMovimientos();
     }
-    document.getElementById('dash-tab-entradas').onclick = () => activarDashTab('entradas');
-    document.getElementById('dash-tab-gastos').onclick   = () => activarDashTab('gastos');
+    DASH_TABS.forEach(n => {
+        document.getElementById('dash-tab-' + n).onclick = () => activarDashTab(n);
+    });
 
     // ── Gastos: alta + listado ───────────────────────────────────────────
     let gastosData = [];
@@ -374,7 +385,7 @@
         return (y && m && d) ? `${d}/${m}/${y}` : (iso || '—');
     }
 
-    // Lee el mismo rango Desde/Hasta que usa la pestaña Entradas (inputs compartidos en el documento).
+    // Lee el mismo rango Desde/Hasta que usa la pestaña Ingresos (inputs compartidos en el documento).
     function obtenerRangoFechas() {
         return {
             desde: document.getElementById('dash-desde')?.value || '',
@@ -382,7 +393,7 @@
         };
     }
 
-    // Lee el total de Entradas del período ya calculado por cargarDashboardKPIs() (pestaña Entradas).
+    // Lee el total de Entradas del período ya calculado por cargarDashboardKPIs() (pestaña Ingresos).
     function leerEntradasDelPeriodo() {
         const el = document.getElementById('kpi-ingresos');
         const n = el ? parseInt(el.innerText.replace(/[^0-9]/g, ''), 10) : NaN;
@@ -390,7 +401,7 @@
     }
 
     // Muestra la apertura de Entradas por método de pago (Efectivo/Transferencia),
-    // usando los mismos totales que calcula la pestaña Entradas (window._dashMetodoTotales).
+    // usando los mismos totales que calcula la pestaña Ingresos (window._dashMetodoTotales).
     function renderEntradasPorMetodo() {
         const cont = document.getElementById('gasto-entradas-metodos');
         if (!cont) return;
@@ -512,6 +523,9 @@
             if (hasta && m.fecha > hasta) return false;
             return true;
         });
+
+        const rangoTexto = document.getElementById('mov-rango-texto');
+        if (rangoTexto) rangoTexto.innerText = (desde || hasta) ? `${fmtFecha(desde)} → ${fmtFecha(hasta)}` : 'todas las fechas';
 
         const tbody = document.getElementById('mov-body');
         if (!tbody) return;
