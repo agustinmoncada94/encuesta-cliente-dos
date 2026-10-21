@@ -334,7 +334,13 @@
                 });
 
                 if (tabName === 'socios_lista') await cargarSocios();
-                if (tabName === 'dashboard' || tabName === 'administracion') cargarDashboardKPIs();
+                if (tabName === 'dashboard') cargarDashboardKPIs();
+                if (tabName === 'administracion') {
+                    // La pestaña Ingresos de Administración necesita que cargarDashboardKPIs()
+                    // termine primero (calcula window._dashMetodoTotales y el KPI de ingresos).
+                    await cargarDashboardKPIs();
+                    if (typeof window.refrescarIngresosAdministracion === 'function') window.refrescarIngresosAdministracion();
+                }
 
                 if (tabName === 'socios_registro') {
                     // Modo REGISTRO NUEVO

@@ -350,6 +350,24 @@ app.put('/api/socios/:dni', async (req, res) => {
     }
 });
 
+// TODOS LOS PAGOS, de todos los socios, con nombre/DNI (para la pestaña Ingresos de Administración).
+app.get('/api/pagos/todos', async (req, res) => {
+    try {
+        await conectar();
+        const keys = await client.keys('pagos:*');
+        const pagos = [];
+        for (const k of keys) {
+            const dni = k.replace('pagos:', '');
+            const rawSocio = await client.get(`socio:${dni}`);
+            const socio = rawSocio ? JSON.parse(rawSocio) : null;
+            const rawPagos = await client.get(k);
+            const lista = rawPagos ? JSON.parse(rawPagos) : [];
+            lista.forEach(p => pagos.push({ ...p, dni, nombreSocio: socio ? socio.nombre : null }));
+        }
+        res.json(pagos);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // OBTENER PAGOS DE UN SOCIO
 app.get('/api/socios/:dni/pagos', async (req, res) => {
     try {
