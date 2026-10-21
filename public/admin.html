@@ -450,6 +450,15 @@
             }
         }
 
+        // Convierte un "YYYY-MM-DD" (lo que da un <input type="date">) a un ISO completo
+        // armado en hora LOCAL, para que no se corra un día al mostrarlo despues (new Date("YYYY-MM-DD")
+        // se interpreta como medianoche UTC, lo que en Argentina -UTC-3- muestra el día anterior).
+        function fechaInputAISO(valor) {
+            if (!valor) return null;
+            const [y, m, d] = valor.split('-').map(Number);
+            return new Date(y, m - 1, d).toISOString();
+        }
+
         function leerFormulario() {
             const montoRaw = (document.getElementById('pago-monto')?.value || '').trim();
             const montoNum = parseInt(montoRaw, 10);
@@ -461,7 +470,7 @@
                 telefono:   document.getElementById('telefono').value.trim(),
                 plan:       document.getElementById('plan').value,
                 estado:     document.getElementById('estado').value,
-                fechaInicio: document.getElementById('fechaInicio').value || new Date().toISOString(),
+                fechaInicio: fechaInputAISO(document.getElementById('fechaInicio').value) || new Date().toISOString(),
                 primerPago: montoFmt ? {
                     monto:    montoFmt,
                     metodo:   document.getElementById('pago-metodo')?.value || 'Efectivo',
