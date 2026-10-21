@@ -80,6 +80,24 @@
                     <div><span>Tipo</span><b>Mensual</b></div>
                 </div>
             </div>
+
+            <div class="socio-alias-box">
+                <div class="socio-alias-item">
+                    <div class="socio-alias-info">
+                        <span class="socio-alias-banco">Banco Galicia</span>
+                        <span class="socio-alias-valor">Tomasperon.Declon</span>
+                    </div>
+                    <button class="socio-alias-copiar" data-alias="Tomasperon.Declon">Copiar</button>
+                </div>
+                <div class="socio-alias-item">
+                    <div class="socio-alias-info">
+                        <span class="socio-alias-banco">Mercado Pago</span>
+                        <span class="socio-alias-valor">declon.mp</span>
+                    </div>
+                    <button class="socio-alias-copiar" data-alias="declon.mp">Copiar</button>
+                </div>
+            </div>
+
             <a class="socio-btn-whatsapp" id="btn-whatsapp" href="#" target="_blank" rel="noopener">
                 <i class="fa-brands fa-whatsapp"></i> Enviar comprobante de pago por Whatsapp
             </a>
@@ -174,6 +192,23 @@
                 overlay.onclick = e => { if (e.target === overlay) cerrar(false); };
             });
         }
+
+        // Botones "Copiar" de los alias de pago (Banco Galicia / Mercado Pago)
+        document.querySelectorAll('.socio-alias-copiar').forEach(btn => {
+            btn.onclick = async () => {
+                const alias = btn.dataset.alias;
+                try {
+                    await navigator.clipboard.writeText(alias);
+                } catch (e) {
+                    // Si el navegador bloquea el clipboard (ej. sin HTTPS), igual mostramos el aviso;
+                    // el socio puede seleccionar el texto a mano.
+                }
+                const textoOriginal = btn.innerText;
+                btn.innerText = '¡Copiado!';
+                btn.classList.add('copiado');
+                setTimeout(() => { btn.innerText = textoOriginal; btn.classList.remove('copiado'); }, 1500);
+            };
+        });
 
         // Las fechas "solo fecha" (YYYY-MM-DD, sin hora) se arman en horario local para que no
         // se corran un día hacia atrás si el navegador está en una zona horaria detrás de UTC.

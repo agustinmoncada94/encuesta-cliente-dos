@@ -238,6 +238,42 @@ body {
 .socio-venc-item span { display: block; font-size: 0.66rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
 .socio-venc-item b { font-size: 0.82rem; color: var(--text); }
 
+.socio-alias-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.socio-alias-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+
+.socio-alias-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.socio-alias-banco { font-size: 0.66rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.socio-alias-valor { font-size: 0.86rem; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+
+.socio-alias-copiar {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--panel-border);
+    color: var(--text-soft);
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.socio-alias-copiar.copiado { background: rgba(53,224,138,0.15); border-color: rgba(53,224,138,0.35); color: var(--success); }
+
 .socio-btn-whatsapp {
     display: flex;
     align-items: center;
