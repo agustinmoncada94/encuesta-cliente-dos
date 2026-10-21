@@ -495,11 +495,26 @@
                 const r = await fetch('/api/socios/todos');
                 sociosGlobal = await r.json();
                 actualizarBadgeAlertas(sociosGlobal);
+                await poblarFiltroPlanes();
                 filtrarSocios();
                 calcularResumenSocios();
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        // El filtro "Plan" de Ver Socios se arma con los planes que existen HOY (vía /api/planes),
+        // no con una lista fija, para que no se desactualice cuando se crean/editan/borran planes.
+        async function poblarFiltroPlanes() {
+            const select = document.getElementById('filtroPlan');
+            if (!select) return;
+            const valorActual = select.value;
+            try {
+                const planes = await fetch('/api/planes').then(r => r.json());
+                select.innerHTML = '<option value="todos">Todos los planes</option>' +
+                    planes.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
+                if ([...select.options].some(o => o.value === valorActual)) select.value = valorActual;
+            } catch (e) { /* si falla, se deja "Todos los planes" */ }
         }
 
         // Tarjetas resumen arriba de la lista de socios (activos, vencen esta semana, vencidos, ingresos del mes)
