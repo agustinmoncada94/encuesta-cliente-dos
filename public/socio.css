@@ -238,6 +238,15 @@ body {
 .socio-venc-item span { display: block; font-size: 0.66rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
 .socio-venc-item b { font-size: 0.82rem; color: var(--text); }
 
+.socio-alias-titulo {
+    font-size: 0.66rem;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
 .socio-alias-box {
     display: flex;
     flex-direction: column;
