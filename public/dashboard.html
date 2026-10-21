@@ -254,7 +254,10 @@
         </div>
 
         <div class="eqv2-card">
-            <div class="eqv2-card-title">Historial de gastos</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px">
+                <div class="eqv2-card-title" style="margin-bottom:0">Historial de gastos</div>
+                <button class="det-btn-volver" id="gasto-btn-exportar" style="font-size:.8rem;padding:7px 14px">Exportar</button>
+            </div>
             <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
                 Mostrando el período seleccionado en la pestaña Entradas: <b id="gasto-rango-texto">—</b>
             </p>
@@ -307,6 +310,7 @@
 
     // ── Gastos: alta + listado ───────────────────────────────────────────
     let gastosData = [];
+    let gastosFiltradosActuales = []; // lo que esta mostrando la tabla ahora mismo (usado al exportar)
 
     async function cargarGastos() {
         gastosData = await fetch('/api/gastos').then(r => r.json()).catch(() => []);
@@ -381,6 +385,8 @@
             </tr>`).join('');
         }
 
+        gastosFiltradosActuales = gastosFiltrados;
+
         const totalGastos = gastosFiltrados.reduce((s, g) => s + (Number(g.monto) || 0), 0);
         document.getElementById('gasto-total').innerText = '$' + totalGastos.toLocaleString('es-AR');
 
@@ -438,6 +444,27 @@
     }
 
     document.getElementById('gasto-btn-limpiar').onclick = limpiarFormGasto;
+
+    document.getElementById('gasto-btn-exportar').onclick = () => {
+        if (!gastosFiltradosActuales.length) { alert('No hay gastos para exportar en este período.'); return; }
+        const SEP = ';'; // Excel reconoce ; como separador de columnas
+        const cabecera = ['Fecha', 'Concepto', 'Método', 'Monto', 'Registrado por'].join(SEP);
+        const filas = gastosFiltradosActuales.map(g => [
+            fmtFecha(g.fecha),
+            `"${(g.concepto || '').replace(/"/g, '""')}"`,
+            `"${(g.metodo || '').replace(/"/g, '""')}"`,
+            g.monto != null ? g.monto : '',
+            `"${(g.registradoPor || '').replace(/"/g, '""')}"`
+        ].join(SEP));
+        const csv  = [cabecera, ...filas].join('\r\n');
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `gastos_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     document.getElementById('gasto-btn-guardar').onclick = async function () {
         const fecha    = document.getElementById('gasto-fecha').value;
