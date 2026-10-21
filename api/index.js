@@ -715,6 +715,47 @@ app.delete('/api/gastos/:id', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// MOVIMIENTOS ENTRE CAJAS (pasar plata de Efectivo a Transferencia o viceversa).
+// No es un gasto real: no resta del Balance total, solo mueve plata entre los dos
+// balances por método (uno baja, el otro sube la misma cantidad).
+app.get('/api/movimientos', async (req, res) => {
+    try {
+        await conectar();
+        const keys = await client.keys('movimiento:*');
+        const movimientos = await Promise.all(keys.map(async k => JSON.parse(await client.get(k))));
+        res.json(movimientos.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id)));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/movimientos', async (req, res) => {
+    try {
+        await conectar();
+        const { fecha, origen, destino, monto, nota, registradoPor } = req.body;
+        const metodosValidos = ['Efectivo', 'Transferencia'];
+        if (!fecha || !metodosValidos.includes(origen) || !metodosValidos.includes(destino)) {
+            return res.status(400).json({ error: 'Faltan datos del movimiento (fecha, origen, destino)' });
+        }
+        if (origen === destino) return res.status(400).json({ error: 'El origen y el destino no pueden ser el mismo' });
+        const montoNum = Number(monto);
+        if (!montoNum || montoNum <= 0) return res.status(400).json({ error: 'El monto debe ser mayor a 0' });
+
+        const movimiento = {
+            id: Date.now(), fecha, origen, destino, monto: montoNum,
+            nota: nota || '', registradoPor: registradoPor || '—'
+        };
+        await client.set(`movimiento:${movimiento.id}`, JSON.stringify(movimiento));
+        res.json({ success: true, movimiento });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/movimientos/:id', async (req, res) => {
+    try {
+        await conectar();
+        await client.del(`movimiento:${req.params.id}`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // PROFESORES Y VOTACION (1 a 5 estrellas)
 // El voto se guarda con el DNI del socio para limitar a 1 voto por mes POR PROFESOR
 // (no se comparte entre profesores, y no se acumula si un mes no se usa).

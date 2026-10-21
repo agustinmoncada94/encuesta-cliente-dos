@@ -274,6 +274,56 @@
             </div>
         </div>
 
+        <div class="eqv2-card">
+            <div class="eqv2-card-title">Pasar dinero entre cajas</div>
+            <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
+                Para cuando movés plata de Efectivo a Transferencia (o al revés) sin que sea un gasto real,
+                por ejemplo retirar del banco para tener efectivo en caja. No afecta el Balance total, solo
+                ajusta el balance de cada método.
+            </p>
+            <div class="eqv2-form-grid">
+                <div>
+                    <label class="eqv2-label">Fecha *</label>
+                    <input class="eqv2-input" type="date" id="mov-fecha">
+                </div>
+                <div>
+                    <label class="eqv2-label">Monto *</label>
+                    <input class="eqv2-input" type="number" min="0" id="mov-monto" placeholder="Ej: 20000">
+                </div>
+                <div class="full">
+                    <label class="eqv2-label">Movimiento *</label>
+                    <select class="eqv2-select" id="mov-direccion" style="width:100%">
+                        <option value="" disabled selected>Seleccionar</option>
+                        <option value="Efectivo→Transferencia">Efectivo → Transferencia</option>
+                        <option value="Transferencia→Efectivo">Transferencia → Efectivo</option>
+                    </select>
+                </div>
+                <div class="full">
+                    <label class="eqv2-label">Nota (opcional)</label>
+                    <input class="eqv2-input" id="mov-nota" placeholder="Ej: Retiré del Galicia para tener efectivo">
+                </div>
+                <div class="full" style="display:flex;gap:12px;margin-top:8px">
+                    <button class="eqv2-btn-ghost" id="mov-btn-limpiar">Limpiar</button>
+                    <button class="eq-btn-primary" id="mov-btn-guardar" style="margin-left:auto">Registrar movimiento</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="eqv2-card">
+            <div class="eqv2-card-title">Movimientos entre cajas</div>
+            <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
+                Mostrando el período seleccionado en la pestaña Entradas.
+            </p>
+            <div style="overflow-x:auto">
+                <table class="eqv2-table">
+                    <thead>
+                        <tr><th>Fecha</th><th>De → A</th><th>Monto</th><th>Nota</th><th>Registrado por</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="mov-body"></tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
     <!-- ══ FIN PANEL GASTOS ══ -->
 
@@ -303,7 +353,9 @@
         document.getElementById('dash-tab-gastos').classList.remove('active');
         document.getElementById('dash-panel-' + nombre).classList.add('active');
         document.getElementById('dash-tab-' + nombre).classList.add('active');
-        if (nombre === 'gastos') cargarGastos();
+        // Los movimientos entre cajas se cargan primero: el cálculo del Balance por método
+        // (dentro de renderGastos) los necesita ya filtrados.
+        if (nombre === 'gastos') cargarMovimientos().then(() => cargarGastos());
     }
     document.getElementById('dash-tab-entradas').onclick = () => activarDashTab('entradas');
     document.getElementById('dash-tab-gastos').onclick   = () => activarDashTab('gastos');
@@ -424,8 +476,16 @@
             gastosPorMetodo[agruparMetodoGasto(g.metodo)] += Number(g.monto) || 0;
         });
 
+        // Los movimientos entre cajas no son un gasto: solo mueven plata de un balance al otro
+        // (lo que sale de uno entra al otro), así que no tocan el Balance total.
+        const movimientoNetoPorMetodo = { Efectivo: 0, Transferencia: 0 };
+        movimientosFiltradosActuales.forEach(m => {
+            movimientoNetoPorMetodo[m.destino] += Number(m.monto) || 0;
+            movimientoNetoPorMetodo[m.origen]  -= Number(m.monto) || 0;
+        });
+
         cont.innerHTML = metodos.map((m, i) => {
-            const balanceM = (metodoTotales[i] || 0) - (gastosPorMetodo[m] || 0);
+            const balanceM = (metodoTotales[i] || 0) - (gastosPorMetodo[m] || 0) + (movimientoNetoPorMetodo[m] || 0);
             const signo = balanceM < 0 ? '-$' : '$';
             return `
             <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);border-radius:20px;padding:4px 10px 4px 8px;font-size:.74rem">
@@ -435,6 +495,96 @@
             </span>`;
         }).join('');
     }
+
+    // ── Movimientos entre cajas: alta + listado ──────────────────────────
+    let movimientosData = [];
+    let movimientosFiltradosActuales = [];
+
+    async function cargarMovimientos() {
+        movimientosData = await fetch('/api/movimientos').then(r => r.json()).catch(() => []);
+        renderMovimientos();
+    }
+
+    function renderMovimientos() {
+        const { desde, hasta } = obtenerRangoFechas();
+        movimientosFiltradosActuales = movimientosData.filter(m => {
+            if (desde && m.fecha < desde) return false;
+            if (hasta && m.fecha > hasta) return false;
+            return true;
+        });
+
+        const tbody = document.getElementById('mov-body');
+        if (!tbody) return;
+        if (!movimientosFiltradosActuales.length) {
+            tbody.innerHTML = `<tr><td colspan="6">
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">🔄</div><p>No hay movimientos entre cajas en este período.</p></div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = movimientosFiltradosActuales.map(m => `
+            <tr>
+                <td>${fmtFecha(m.fecha)}</td>
+                <td>${m.origen} → ${m.destino}</td>
+                <td>$${Number(m.monto).toLocaleString('es-AR')}</td>
+                <td>${m.nota || '—'}</td>
+                <td>${m.registradoPor || '—'}</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <button class="eqv2-btn-danger" onclick="movimientoEliminar(${m.id})">🗑️</button>
+                    </div>
+                </td>
+            </tr>`).join('');
+    }
+
+    function limpiarFormMovimiento() {
+        document.getElementById('mov-fecha').value = '';
+        document.getElementById('mov-monto').value = '';
+        document.getElementById('mov-direccion').value = '';
+        document.getElementById('mov-nota').value = '';
+    }
+
+    document.getElementById('mov-btn-limpiar').onclick = limpiarFormMovimiento;
+
+    document.getElementById('mov-btn-guardar').onclick = async function () {
+        const fecha     = document.getElementById('mov-fecha').value;
+        const monto     = document.getElementById('mov-monto').value;
+        const direccion = document.getElementById('mov-direccion').value;
+        const nota      = document.getElementById('mov-nota').value.trim();
+
+        if (!fecha || !monto || !direccion) { alert('Completá la fecha, el monto y el movimiento.'); return; }
+        const [origen, destino] = direccion.split('→');
+
+        const res = await fetch('/api/movimientos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fecha, origen, destino, monto: Number(monto), nota,
+                registradoPor: window._sessionUsuario || '—'
+            })
+        });
+        const resultado = await res.json();
+        if (!res.ok) { alert(resultado.error || 'No se pudo registrar el movimiento.'); return; }
+
+        limpiarFormMovimiento();
+        await cargarMovimientos();
+        renderGastos();
+    };
+
+    window.movimientoEliminar = async function (id) {
+        const m = movimientosData.find(x => x.id === id);
+        const ok = await confirmar({
+            icono: '🗑️',
+            titulo: '¿Eliminar este movimiento?',
+            detalle: m ? `Se eliminará el pase de <strong>${m.origen} → ${m.destino}</strong> por $${Number(m.monto).toLocaleString('es-AR')}.` : '',
+            labelOk: 'Sí, eliminar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+        await fetch(`/api/movimientos/${id}`, { method: 'DELETE' });
+        await cargarMovimientos();
+        renderGastos();
+    };
 
     function limpiarFormGasto() {
         document.getElementById('gasto-fecha').value = '';
