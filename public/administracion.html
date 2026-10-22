@@ -129,9 +129,9 @@
                     <label class="eqv2-label">Método *</label>
                     <select class="eqv2-select" id="gasto-metodo" style="width:100%">
                         <option value="" disabled selected>Seleccionar</option>
-                        <option>Transferencia Mercado Pago</option>
-                        <option>Transferencia Galicia</option>
                         <option>Efectivo</option>
+                        <option>Banco Galicia</option>
+                        <option>Mercado Pago</option>
                     </select>
                 </div>
                 <div class="full">
@@ -179,9 +179,9 @@
         <div class="eqv2-card">
             <div class="eqv2-card-title">Pasar dinero entre cajas</div>
             <p style="font-size:.78rem;color:var(--text-faint);margin:-8px 0 16px">
-                Para cuando movés plata de Efectivo a Transferencia (o al revés) sin que sea un gasto real,
-                por ejemplo retirar del banco para tener efectivo en caja. No afecta el Balance total (en la
-                pestaña Gastos), solo ajusta el balance de cada método.
+                Para cuando movés plata de una caja a otra (Efectivo, Banco Galicia, Mercado Pago)
+                sin que sea un gasto real, por ejemplo retirar del banco para tener efectivo en caja.
+                No afecta el Balance total (en la pestaña Gastos), solo ajusta el balance de cada método.
             </p>
             <div class="eqv2-form-grid">
                 <div>
@@ -192,12 +192,22 @@
                     <label class="eqv2-label">Monto *</label>
                     <input class="eqv2-input" type="number" min="0" id="mov-monto" placeholder="Ej: 20000">
                 </div>
-                <div class="full">
-                    <label class="eqv2-label">Movimiento *</label>
-                    <select class="eqv2-select" id="mov-direccion" style="width:100%">
+                <div>
+                    <label class="eqv2-label">De *</label>
+                    <select class="eqv2-select" id="mov-origen" style="width:100%">
                         <option value="" disabled selected>Seleccionar</option>
-                        <option value="Efectivo→Transferencia">Efectivo → Transferencia</option>
-                        <option value="Transferencia→Efectivo">Transferencia → Efectivo</option>
+                        <option>Efectivo</option>
+                        <option>Banco Galicia</option>
+                        <option>Mercado Pago</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="eqv2-label">A *</label>
+                    <select class="eqv2-select" id="mov-destino" style="width:100%">
+                        <option value="" disabled selected>Seleccionar</option>
+                        <option>Efectivo</option>
+                        <option>Banco Galicia</option>
+                        <option>Mercado Pago</option>
                     </select>
                 </div>
                 <div class="full">
@@ -282,7 +292,7 @@
         return isNaN(n) ? 0 : n;
     }
 
-    // Muestra la apertura de Entradas por método de pago (Efectivo/Transferencia),
+    // Muestra la apertura de Entradas por método de pago (Efectivo/Banco Galicia/Mercado Pago),
     // usando los mismos totales que calcula cargarDashboardKPIs (window._dashMetodoTotales).
     // Se reutiliza tanto en la tarjeta de Ingresos como en la de Gastos.
     function renderEntradasPorMetodo(contenedorId = 'gasto-entradas-metodos') {
@@ -453,13 +463,8 @@
         renderBalancePorMetodo(gastosFiltrados);
     }
 
-    // Un gasto por "Transferencia Mercado Pago" o "Transferencia Galicia" resta siempre del balance
-    // de Transferencia, sea cual sea la transferencia elegida.
-    function agruparMetodoGasto(metodo) {
-        return String(metodo || '').startsWith('Transferencia') ? 'Transferencia' : 'Efectivo';
-    }
-
-    // Balance (Entradas - Gastos) separado por Efectivo y Transferencia, debajo del Balance total.
+    // Balance (Entradas - Gastos) separado por caja (Efectivo / Banco Galicia / Mercado Pago),
+    // debajo del Balance total.
     function renderBalancePorMetodo(gastosFiltrados) {
         const cont = document.getElementById('gasto-balance-metodos');
         if (!cont) return;
@@ -467,14 +472,14 @@
         if (!datos) { cont.innerHTML = ''; return; }
         const { metodos, metodoColor, metodoTotales } = datos;
 
-        const gastosPorMetodo = { Efectivo: 0, Transferencia: 0 };
+        const gastosPorMetodo = { Efectivo: 0, 'Banco Galicia': 0, 'Mercado Pago': 0 };
         gastosFiltrados.forEach(g => {
-            gastosPorMetodo[agruparMetodoGasto(g.metodo)] += Number(g.monto) || 0;
+            if (g.metodo in gastosPorMetodo) gastosPorMetodo[g.metodo] += Number(g.monto) || 0;
         });
 
         // Los movimientos entre cajas no son un gasto: solo mueven plata de un balance al otro
         // (lo que sale de uno entra al otro), así que no tocan el Balance total.
-        const movimientoNetoPorMetodo = { Efectivo: 0, Transferencia: 0 };
+        const movimientoNetoPorMetodo = { Efectivo: 0, 'Banco Galicia': 0, 'Mercado Pago': 0 };
         movimientosFiltradosActuales.forEach(m => {
             movimientoNetoPorMetodo[m.destino] += Number(m.monto) || 0;
             movimientoNetoPorMetodo[m.origen]  -= Number(m.monto) || 0;
@@ -538,20 +543,22 @@
     function limpiarFormMovimiento() {
         document.getElementById('mov-fecha').value = '';
         document.getElementById('mov-monto').value = '';
-        document.getElementById('mov-direccion').value = '';
+        document.getElementById('mov-origen').value = '';
+        document.getElementById('mov-destino').value = '';
         document.getElementById('mov-nota').value = '';
     }
 
     document.getElementById('mov-btn-limpiar').onclick = limpiarFormMovimiento;
 
     document.getElementById('mov-btn-guardar').onclick = async function () {
-        const fecha     = document.getElementById('mov-fecha').value;
-        const monto     = document.getElementById('mov-monto').value;
-        const direccion = document.getElementById('mov-direccion').value;
-        const nota      = document.getElementById('mov-nota').value.trim();
+        const fecha   = document.getElementById('mov-fecha').value;
+        const monto   = document.getElementById('mov-monto').value;
+        const origen  = document.getElementById('mov-origen').value;
+        const destino = document.getElementById('mov-destino').value;
+        const nota    = document.getElementById('mov-nota').value.trim();
 
-        if (!fecha || !monto || !direccion) { alert('Completá la fecha, el monto y el movimiento.'); return; }
-        const [origen, destino] = direccion.split('→');
+        if (!fecha || !monto || !origen || !destino) { alert('Completá la fecha, el monto, y de dónde a dónde pasa la plata.'); return; }
+        if (origen === destino) { alert('El origen y el destino no pueden ser la misma caja.'); return; }
 
         const res = await fetch('/api/movimientos', {
             method: 'POST',

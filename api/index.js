@@ -763,7 +763,7 @@ app.post('/api/movimientos', async (req, res) => {
     try {
         await conectar();
         const { fecha, origen, destino, monto, nota, registradoPor } = req.body;
-        const metodosValidos = ['Efectivo', 'Transferencia'];
+        const metodosValidos = ['Efectivo', 'Banco Galicia', 'Mercado Pago'];
         if (!fecha || !metodosValidos.includes(origen) || !metodosValidos.includes(destino)) {
             return res.status(400).json({ error: 'Faltan datos del movimiento (fecha, origen, destino)' });
         }

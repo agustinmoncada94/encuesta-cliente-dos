@@ -732,7 +732,8 @@
                             <label>Método de pago
                                 <select id="cm-metodo" class="hist-input">
                                     <option value="Efectivo">Efectivo</option>
-                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Banco Galicia">Banco Galicia</option>
+                                    <option value="Mercado Pago">Mercado Pago</option>
                                     ${opcionDebito}
                                 </select>
                             </label>
@@ -923,7 +924,7 @@
             const pagos = await fetch(`/api/socios/${dni}/pagos`).then(r => r.json()).catch(() => []);
 
             const metodoPill = m => {
-                const map = { 'Efectivo':'#84cc16', 'Transferencia':'#60a5fa', 'Débito':'#a78bfa', 'Crédito':'#f59e0b' };
+                const map = { 'Efectivo':'#84cc16', 'Banco Galicia':'#f59e0b', 'Mercado Pago':'#38bdf8', 'Transferencia':'#60a5fa', 'Débito':'#a78bfa', 'Crédito':'#f59e0b' };
                 const color = map[m] || '#94a3b8';
                 return `<span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;background:${color}22;color:${color};border:1px solid ${color}44">${m||'—'}</span>`;
             };
@@ -1357,8 +1358,8 @@
                 set('dash-mejor-plan', mejorPlan ? mejorPlan[0] : '—');
 
                 // ── Chart 5: Ingresos por método de pago (período seleccionado) ──
-                const metodos     = ['Efectivo', 'Transferencia'];
-                const metodoColor = ['#84cc16', '#60a5fa'];
+                const metodos     = ['Efectivo', 'Banco Galicia', 'Mercado Pago'];
+                const metodoColor = ['#84cc16', '#f59e0b', '#38bdf8'];
                 const metodoTotales = metodos.map(met =>
                     pagosEnRango.filter(p => (p.metodo||'Efectivo') === met)
                             .reduce((s, p) => s + parseMonto(p.monto), 0)
