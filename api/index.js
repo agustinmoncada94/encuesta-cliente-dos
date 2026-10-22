@@ -181,6 +181,11 @@ app.post('/api/registrar', async (req, res) => {
         }
 
         if (!socio.fechaInicio) socio.fechaInicio = new Date().toISOString();
+        // Trazabilidad: quién registró el alta y cuándo exactamente (fecha y hora).
+        // registradoPor viene del front (sesión del Admin logueado); no se puede validar
+        // server-side porque esta app no tiene auth por token en cada request.
+        socio.registradoEl = new Date().toISOString();
+        socio.registradoPor = socio.registradoPor || '—';
         await client.set(`socio:${socio.dni}`, JSON.stringify(socio));
 
         // Guardar comprobante de pago adjuntado (preinscripción online)
@@ -258,6 +263,9 @@ app.post('/api/preinscripciones/:dni/aceptar', async (req, res) => {
         const { primerPago, comprobante, estado, fechaSolicitud, ...socio } = JSON.parse(raw);
         socio.estado = 'Activo';
         socio.fechaInicio = new Date().toISOString();
+        // Trazabilidad: quién aceptó la preinscripción (así queda "registrado") y cuándo.
+        socio.registradoEl = new Date().toISOString();
+        socio.registradoPor = req.body?.registradoPor || '—';
         await client.set(`socio:${dni}`, JSON.stringify(socio));
 
         if (comprobante && comprobante.dataUrl) {
@@ -343,7 +351,13 @@ app.post('/api/socios/cobrar', async (req, res) => {
 app.put('/api/socios/:dni', async (req, res) => {
     try {
         await conectar();
-        await client.set(`socio:${req.params.dni}`, JSON.stringify(req.body));
+        // Se combina con el registro existente (no se pisa entero) para no perder datos de
+        // trazabilidad (registradoPor/registradoEl) ni otros campos que el form de edición
+        // no maneja.
+        const existingRaw = await client.get(`socio:${req.params.dni}`);
+        const existente = existingRaw ? JSON.parse(existingRaw) : {};
+        const actualizado = { ...existente, ...req.body };
+        await client.set(`socio:${req.params.dni}`, JSON.stringify(actualizado));
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: "Error al actualizar" });

@@ -183,6 +183,13 @@
             document.getElementById('det-info-vence').innerText    = fmt(hasta);
             document.getElementById('det-info-estado').innerText   = estadoTexto;
 
+            // Trazabilidad: quién dio de alta al socio y cuándo (fecha y hora exactas).
+            // Los socios cargados antes de este campo no tienen registradoPor/registradoEl.
+            document.getElementById('det-info-registrado-por').innerText = s.registradoPor || '—';
+            document.getElementById('det-info-registrado-el').innerText = s.registradoEl
+                ? new Date(s.registradoEl).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' })
+                : '—';
+
             // Color dinámico del badge de estado
             const badgeEstado = document.getElementById('det-badge-estado');
             badgeEstado.style.background    = estadoColor;
@@ -358,6 +365,7 @@
                             });
                             if (!ok) return;
                             if (!datos.fechaInicio) datos.fechaInicio = new Date().toISOString();
+                            datos.registradoPor = window._sessionUsuario || '—';
                             await guardarSocio('POST', '/api/registrar', datos);
                         });
                     }
