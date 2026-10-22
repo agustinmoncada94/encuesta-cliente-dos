@@ -1360,11 +1360,21 @@ select option {
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
 }
+/* Variante de 3 columnas (Dashboard KPI sin Ingresos, y las filas de KPI de
+   Administración), con los mismos puntos de quiebre responsive que .dash-kpi-grid
+   para que nunca queden tan angostas que el contenido (ej. los chips de método de
+   pago) se desborde de la tarjeta. */
+.dash-kpi-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
 .dash-kpi-card {
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: var(--radius-xl);
     padding: 22px;
+    overflow: hidden;
 }
 .dash-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .dash-kpi-icon {
@@ -1479,14 +1489,16 @@ select option {
 .dash-summary-highlight b { color: var(--primary); }
 
 @media (max-width: 1200px) {
-    .dash-kpi-grid  { grid-template-columns: 1fr 1fr; }
-    .dash-row-7030  { grid-template-columns: 1fr; }
-    .dash-row-333   { grid-template-columns: 1fr 1fr; }
-    .dash-row-6040  { grid-template-columns: 1fr; }
+    .dash-kpi-grid   { grid-template-columns: 1fr 1fr; }
+    .dash-kpi-grid-3 { grid-template-columns: 1fr 1fr; }
+    .dash-row-7030   { grid-template-columns: 1fr; }
+    .dash-row-333    { grid-template-columns: 1fr 1fr; }
+    .dash-row-6040   { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
-    .dash-kpi-grid { grid-template-columns: 1fr 1fr; }
-    .dash-row-333  { grid-template-columns: 1fr; }
+    .dash-kpi-grid   { grid-template-columns: 1fr 1fr; }
+    .dash-kpi-grid-3 { grid-template-columns: 1fr; }
+    .dash-row-333    { grid-template-columns: 1fr; }
 }
 
 /* ── EQUIPAMIENTO v2 — Tab layout ─────────────────────────────────────── */
