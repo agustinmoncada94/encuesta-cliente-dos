@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Check-in - Acceso</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    
+    <div class="checkin-container" id="form-container">
+        <div class="logo-placeholder">Acceso Socios</div>
+        <input type="tel" id="dniInput" placeholder="Ingrese su DNI (sin puntos)" maxlength="8" inputmode="numeric">
+        <br>
+        <button id="btnIngresar" onclick="realizarCheckin()">LOG IN</button>
+        <div id="resultado"></div>
+    </div>
+
+    <div id="success-screen">
+        <i class="fas fa-check-circle success-icon"></i>
+        <div class="success-title">Acceso Concedido!</div>
+        <div class="success-welcome">Bienvenido, <span id="partnerNameDisplay" class="partner-name">Socio</span>!</div>
+    </div>
+
+    <script>
+        async function realizarCheckin() {
+            const dniInput = document.getElementById('dniInput');
+            const dni = dniInput.value;
+            const resultadoDiv = document.getElementById('resultado');
+            const formContainer = document.getElementById('form-container');
+            const successScreen = document.getElementById('success-screen');
+            const nameDisplay = document.getElementById('partnerNameDisplay');
+            const btn = document.getElementById('btnIngresar');
+            
+            if(!dni) {
+                resultadoDiv.innerHTML = 'Por favor ingrese un DNI';
+                resultadoDiv.className = 'status-vencido';
+                return;
+            }
+
+            // Feedback visual de carga
+            btn.innerText = "CARGANDO...";
+            btn.disabled = true;
+
+            try {
+                const respuesta = await fetch(`/api/checkin/${dni}`);
+                const datos = await respuesta.json();
+
+                if (respuesta.status === 404) {
+                    resultadoDiv.innerHTML = `❌ DNI ${dni} no encontrado.`;
+                    resultadoDiv.className = 'status-vencido';
+                    btn.innerText = "LOG IN";
+                    btn.disabled = false;
+                } else if (datos.estado === "VENCIDO") {
+                    resultadoDiv.innerHTML = `⚠️ ${datos.message}`;
+                    resultadoDiv.className = 'status-vencido';
+                    btn.innerText = "LOG IN";
+                    btn.disabled = false;
+                } else if (datos.estado === "OK") {
+                    // --- ÉXITO ---
+                    formContainer.style.display = 'none';
+                    
+                    // Extraemos el nombre del mensaje (asumiendo formato: ¡Hola Nombre! ...)
+                    const nombreSocio = datos.message.split('!')[0].replace('¡Hola ', '');
+                    nameDisplay.innerText = nombreSocio;
+                    
+                    successScreen.classList.add('active');
+
+                    // CORRECCIÓN PUNTO 1: Auto-reset después de 4 segundos
+                    setTimeout(() => {
+                        successScreen.classList.remove('active');
+                        formContainer.style.display = 'block';
+                        dniInput.value = ''; // Limpia el DNI para el siguiente
+                        resultadoDiv.innerHTML = ''; // Limpia mensajes
+                        btn.innerText = "LOG IN";
+                        btn.disabled = false;
+                    }, 4000); 
+                }
+            } catch (error) {
+                resultadoDiv.innerHTML = '❌ Error de red.';
+                resultadoDiv.className = 'status-vencido';
+                btn.innerText = "LOG IN";
+                btn.disabled = false;
+            }
+        }
+
+        // Extra: Permitir dar "Enter" para ingresar
+        document.getElementById('dniInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                realizarCheckin();
+            }
+        });
+    </script>
+</body>
+</html>

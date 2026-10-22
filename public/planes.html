@@ -1,0 +1,158 @@
+<div class="eqv2-wrap">
+
+    <div class="eqv2-header">
+        <div>
+            <h1 class="equip-titulo">Planes</h1>
+        </div>
+        <button class="eq-btn-primary" id="pl-btn-nuevo">+ Nuevo plan</button>
+    </div>
+
+    <div class="eqv2-card">
+        <div class="eqv2-card-title">Planes disponibles</div>
+        <div style="overflow-x:auto">
+            <table class="eqv2-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Monto</th>
+                        <th>Días de vigencia</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="pl-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal nuevo/editar plan -->
+<div id="pl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:420px">
+        <h3 class="modal-titulo" id="pl-modal-titulo">➕ Nuevo plan</h3>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+            <div>
+                <label class="modal-label">NOMBRE *</label>
+                <input class="admin-input" id="pl-nombre" placeholder="Ej: Plan Full">
+            </div>
+            <div>
+                <label class="modal-label">MONTO *</label>
+                <input class="admin-input" id="pl-monto" type="number" min="0" placeholder="Ej: 20000">
+            </div>
+            <div>
+                <label class="modal-label">DÍAS DE VIGENCIA *</label>
+                <input class="admin-input" id="pl-dias" type="number" min="1" placeholder="Ej: 30">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="det-btn-volver" style="flex:1" id="pl-modal-cancelar">Cancelar</button>
+                <button class="eq-btn-primary" style="flex:1" id="pl-modal-guardar">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    let planesData = [];
+    let modoEdicion = null;
+
+    async function cargarPlanes() {
+        planesData = await fetch('/api/planes').then(r => r.json()).catch(() => []);
+        renderPlanes();
+    }
+
+    function renderPlanes() {
+        const tbody = document.getElementById('pl-body');
+        if (!planesData.length) {
+            tbody.innerHTML = `<tr><td colspan="4">
+                <div class="eqv2-empty"><div class="eqv2-empty-icon">🏷️</div><p>No hay planes cargados todavía.</p></div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = planesData.map(p => `
+            <tr>
+                <td><b>${p.nombre}</b></td>
+                <td>$${Number(p.monto).toLocaleString('es-AR')}</td>
+                <td>${p.dias} días</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <button class="eqv2-btn-ghost" style="padding:7px 12px;font-size:.8rem" onclick="plEditar(${p.id})">✏️ Editar</button>
+                        <button class="eqv2-btn-danger" onclick="plEliminar(${p.id})">🗑️</button>
+                    </div>
+                </td>
+            </tr>`).join('');
+    }
+
+    function abrirModal(titulo) {
+        document.getElementById('pl-modal-titulo').innerText = titulo;
+        document.getElementById('pl-modal').style.display = 'flex';
+    }
+    function cerrarModal() {
+        document.getElementById('pl-modal').style.display = 'none';
+    }
+    function limpiarForm() {
+        modoEdicion = null;
+        document.getElementById('pl-nombre').value = '';
+        document.getElementById('pl-monto').value = '';
+        document.getElementById('pl-dias').value = '';
+    }
+
+    document.getElementById('pl-btn-nuevo').onclick = () => {
+        limpiarForm();
+        abrirModal('➕ Nuevo plan');
+    };
+
+    document.getElementById('pl-modal-cancelar').onclick = cerrarModal;
+    document.getElementById('pl-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('pl-modal')) cerrarModal();
+    });
+
+    window.plEditar = function (id) {
+        const p = planesData.find(x => x.id === id);
+        if (!p) return;
+        modoEdicion = id;
+        document.getElementById('pl-nombre').value = p.nombre;
+        document.getElementById('pl-monto').value = p.monto;
+        document.getElementById('pl-dias').value = p.dias;
+        abrirModal('✏️ Editar plan');
+    };
+
+    window.plEliminar = async function (id) {
+        const p = planesData.find(x => x.id === id);
+        const ok = await confirmar({
+            icono: '🗑️',
+            titulo: '¿Eliminar plan?',
+            detalle: `Se eliminará <strong>${p ? p.nombre : 'este plan'}</strong>. Los socios que ya lo tengan asignado no se modifican.`,
+            labelOk: 'Sí, eliminar',
+            colorOk: '#ef4444',
+            colorOkText: '#fff'
+        });
+        if (!ok) return;
+        await fetch(`/api/planes/${id}`, { method: 'DELETE' });
+        await cargarPlanes();
+    };
+
+    document.getElementById('pl-modal-guardar').onclick = async function () {
+        const nombre = document.getElementById('pl-nombre').value.trim();
+        const monto  = document.getElementById('pl-monto').value;
+        const dias   = document.getElementById('pl-dias').value;
+        if (!nombre || !monto || !dias) { alert('Completá nombre, monto y días.'); return; }
+
+        const datos = { nombre, monto: parseInt(monto, 10), dias: parseInt(dias, 10) };
+
+        if (modoEdicion) {
+            await fetch(`/api/planes/${modoEdicion}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+            });
+        } else {
+            await fetch('/api/planes', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+            });
+        }
+
+        cerrarModal();
+        await cargarPlanes();
+    };
+
+    cargarPlanes();
+})();
+</script>
